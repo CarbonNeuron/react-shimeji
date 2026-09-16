@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-voltron-keith-by-mel-meiko-mei-ling",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Keith",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "voltron-keith-by-mel-meiko-mei-ling",
+    "Keith"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-voltron-keith-by-mel-meiko-mei-ling"
+  }
+}

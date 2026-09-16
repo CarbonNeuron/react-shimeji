@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-bts-bangtan-boys-v-tae-tae-not-today-by-bidi-0103",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: V - TaeTae [not today]",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "bts-bangtan-boys-v-tae-tae-not-today-by-bidi-0103",
+    "V - TaeTae [not today]"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-bts-bangtan-boys-v-tae-tae-not-today-by-bidi-0103"
+  }
+}

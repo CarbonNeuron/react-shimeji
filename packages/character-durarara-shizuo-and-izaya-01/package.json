@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-durarara-shizuo-and-izaya-01",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Shizuo and Izaya",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "durarara-shizuo-and-izaya-01",
+    "Shizuo and Izaya"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-durarara-shizuo-and-izaya-01"
+  }
+}

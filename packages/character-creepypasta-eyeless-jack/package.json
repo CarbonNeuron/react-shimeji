@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-creepypasta-eyeless-jack",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Eyeless Jack",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "creepypasta-eyeless-jack",
+    "Eyeless Jack"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-creepypasta-eyeless-jack"
+  }
+}

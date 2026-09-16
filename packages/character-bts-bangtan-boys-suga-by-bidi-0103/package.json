@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-bts-bangtan-boys-suga-by-bidi-0103",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Suga",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "bts-bangtan-boys-suga-by-bidi-0103",
+    "Suga"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-bts-bangtan-boys-suga-by-bidi-0103"
+  }
+}
