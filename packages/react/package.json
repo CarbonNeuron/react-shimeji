@@ -1,0 +1,20 @@
+{
+  "name": "@react-shimeji/react",
+  "version": "0.1.0",
+  "description": "React bindings for @react-shimeji/core",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" } },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --external react --external @react-shimeji/core",
+    "clean": "rm -rf dist",
+    "typecheck": "npm run build -w @react-shimeji/core --silent && tsc --noEmit"
+  },
+  "dependencies": { "@react-shimeji/core": "0.1.0" },
+  "peerDependencies": { "react": ">=18" }
+}
