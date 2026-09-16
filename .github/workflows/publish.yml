@@ -1,0 +1,41 @@
+name: Publish Packages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build core + react
+        run: |
+          cd packages/core && bun run build
+          cd ../react && bun run build
+
+      - name: Publish packages
+        run: bun run scripts/publish.ts
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
