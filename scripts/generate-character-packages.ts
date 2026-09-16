@@ -184,40 +184,26 @@ async function generateUmbrellaPackage(
   const outDir = join(OUTPUT_DIR, "characters");
   await mkdir(outDir, { recursive: true });
 
-  // Generate index.ts that re-exports all characters
-  const imports = successful
-    .map((c) => {
-      const varName = c.dirName
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .replace(/^(\d)/, "_$1");
-      return `export { character as ${varName} } from "${c.packageName}";`;
-    })
-    .join("\n");
-
+  // Generate index.ts — dynamic imports only (no static re-exports to avoid bundling all 443 base64 spritesheets)
   const catalogEntries = successful
     .map((c) => {
-      const varName = c.dirName
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .replace(/^(\d)/, "_$1");
       return `  ${JSON.stringify(c.dirName)}: () => import("${c.packageName}").then(m => m.character),`;
     })
     .join("\n");
 
-  const source = `// Auto-generated umbrella package — re-exports all ${successful.length} character packs
+  const source = `// Auto-generated umbrella package — lazy-loads all ${successful.length} character packs
 // Do not edit manually — regenerate with scripts/generate-character-packages.ts
-
-// Direct re-exports (tree-shakeable — bundlers drop unused characters)
-${imports}
-
-/** Lazy-loading catalog — use this for on-demand character loading */
-export const catalog = {
-${catalogEntries}
-} as const;
+// NOTE: No static re-exports — only dynamic import() to avoid bundling all base64 spritesheets at once
 
 /** All available character IDs */
 export const characterIds = ${JSON.stringify(successful.map((c) => c.dirName))} as const;
 
 export type CharacterId = typeof characterIds[number];
+
+/** Lazy-loading catalog — use this for on-demand character loading */
+export const catalog: Record<CharacterId, () => Promise<import("${SCOPE}/core").LegacyCharacterPack>> = {
+${catalogEntries}
+};
 `;
 
   // Dependencies: all character packages
