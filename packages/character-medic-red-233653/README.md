@@ -1,0 +1,17 @@
+# @react-shimeji/character-medic-red-233653
+
+![Medic (RED)](./preview.png)
+
+**Medic (RED)** — a shimeji character pack for [@react-shimeji](https://github.com/CarbonNeuron/react-shimeji).
+
+## Install
+
+```bash
+npm install @react-shimeji/character-medic-red-233653
+```
+
+## Usage
+
+```tsx
+import { character } from "@react-shimeji/character-medic-red-233653";
+```

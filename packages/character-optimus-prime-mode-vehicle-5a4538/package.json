@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-optimus-prime-mode-vehicle-5a4538",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Optimus prime (Mode vehicle)",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "optimus-prime-mode-vehicle-5a4538",
+    "Optimus prime (Mode vehicle)"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-optimus-prime-mode-vehicle-5a4538"
+  }
+}

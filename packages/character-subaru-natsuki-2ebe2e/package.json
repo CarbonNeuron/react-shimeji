@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-subaru-natsuki-2ebe2e",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Subaru Natsuki",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "subaru-natsuki-2ebe2e",
+    "Subaru Natsuki"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-subaru-natsuki-2ebe2e"
+  }
+}

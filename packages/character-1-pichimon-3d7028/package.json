@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-1-pichimon-3d7028",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: 1.Pichimon",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "1-pichimon-3d7028",
+    "1.Pichimon"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-1-pichimon-3d7028"
+  }
+}

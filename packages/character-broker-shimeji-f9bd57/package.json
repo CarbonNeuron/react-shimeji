@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-broker-shimeji-f9bd57",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Broker Shimeji",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "broker-shimeji-f9bd57",
+    "Broker Shimeji"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-broker-shimeji-f9bd57"
+  }
+}

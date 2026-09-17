@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-jack-kennedy-old-sport-dsaf-shimeji-d46925",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Jack Kennedy (Old Sport) (DSAF) Shimeji",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "jack-kennedy-old-sport-dsaf-shimeji-d46925",
+    "Jack Kennedy (Old Sport) (DSAF) Shimeji"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-jack-kennedy-old-sport-dsaf-shimeji-d46925"
+  }
+}

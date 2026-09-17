@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-shimejiee-seth-aqua-forevers-friendes-8fa2d1",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Shimejiee Seth Aqua Forevers Friendes",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "shimejiee-seth-aqua-forevers-friendes-8fa2d1",
+    "Shimejiee Seth Aqua Forevers Friendes"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-shimejiee-seth-aqua-forevers-friendes-8fa2d1"
+  }
+}

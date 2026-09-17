@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-tfp-megatron-shimeji-horroraura-65b3f9",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: TFP Megatron Shimeji (Horroraura)",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "tfp-megatron-shimeji-horroraura-65b3f9",
+    "TFP Megatron Shimeji (Horroraura)"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-tfp-megatron-shimeji-horroraura-65b3f9"
+  }
+}

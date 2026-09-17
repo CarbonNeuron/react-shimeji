@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-wheatly-02082f",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Wheatly",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "wheatly-02082f",
+    "Wheatly"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-wheatly-02082f"
+  }
+}

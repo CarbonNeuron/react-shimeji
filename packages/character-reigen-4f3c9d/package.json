@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-reigen-4f3c9d",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Reigen",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "reigen-4f3c9d",
+    "Reigen"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-reigen-4f3c9d"
+  }
+}

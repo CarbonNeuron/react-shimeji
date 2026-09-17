@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-eevee-alola-shiny-356048",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Eevee Alola Shiny",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "eevee-alola-shiny-356048",
+    "Eevee Alola Shiny"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-eevee-alola-shiny-356048"
+  }
+}

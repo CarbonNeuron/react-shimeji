@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-shockwave-1c78ca",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Shockwave",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "shockwave-1c78ca",
+    "Shockwave"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-shockwave-1c78ca"
+  }
+}

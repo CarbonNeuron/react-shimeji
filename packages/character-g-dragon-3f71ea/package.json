@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-g-dragon-3f71ea",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: G Dragon",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "g-dragon-3f71ea",
+    "G Dragon"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-g-dragon-3f71ea"
+  }
+}

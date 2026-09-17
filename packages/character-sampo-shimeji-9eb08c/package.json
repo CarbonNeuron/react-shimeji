@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-sampo-shimeji-9eb08c",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Sampo Shimeji",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "sampo-shimeji-9eb08c",
+    "Sampo Shimeji"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-sampo-shimeji-9eb08c"
+  }
+}

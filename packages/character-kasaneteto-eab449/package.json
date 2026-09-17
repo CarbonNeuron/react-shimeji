@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-kasaneteto-eab449",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: KasaneTeto",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "kasaneteto-eab449",
+    "KasaneTeto"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-kasaneteto-eab449"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-jason-todd-074dde",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Jason todd ^^",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "jason-todd-074dde",
+    "Jason todd ^^"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-jason-todd-074dde"
+  }
+}

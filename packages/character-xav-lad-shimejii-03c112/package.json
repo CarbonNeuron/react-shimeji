@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-xav-lad-shimejii-03c112",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: XAV LAD Shimejii",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "xav-lad-shimejii-03c112",
+    "XAV LAD Shimejii"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-xav-lad-shimejii-03c112"
+  }
+}

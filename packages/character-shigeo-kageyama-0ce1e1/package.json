@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-shigeo-kageyama-0ce1e1",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Shigeo Kageyama",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "shigeo-kageyama-0ce1e1",
+    "Shigeo Kageyama"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-shigeo-kageyama-0ce1e1"
+  }
+}

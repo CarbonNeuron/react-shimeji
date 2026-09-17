@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-ralsei-delatune-not-mine-e9929f",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: ralsei delatune (not mine)",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "ralsei-delatune-not-mine-e9929f",
+    "ralsei delatune (not mine)"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-ralsei-delatune-not-mine-e9929f"
+  }
+}

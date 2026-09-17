@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-gardevoir-shiny-1a4340",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Gardevoir Shiny",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "gardevoir-shiny-1a4340",
+    "Gardevoir Shiny"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-gardevoir-shiny-1a4340"
+  }
+}

@@ -1,0 +1,17 @@
+# @react-shimeji/character-ralsei-hatted-81220f
+
+![Ralsei (Hatted)](./preview.png)
+
+**Ralsei (Hatted)** — a shimeji character pack for [@react-shimeji](https://github.com/CarbonNeuron/react-shimeji).
+
+## Install
+
+```bash
+npm install @react-shimeji/character-ralsei-hatted-81220f
+```
+
+## Usage
+
+```tsx
+import { character } from "@react-shimeji/character-ralsei-hatted-81220f";
+```

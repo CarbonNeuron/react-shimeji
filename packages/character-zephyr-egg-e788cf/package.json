@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-zephyr-egg-e788cf",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Zephyr Egg",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "zephyr-egg-e788cf",
+    "Zephyr Egg"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-zephyr-egg-e788cf"
+  }
+}

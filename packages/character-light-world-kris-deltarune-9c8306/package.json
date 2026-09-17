@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-light-world-kris-deltarune-9c8306",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: light world kris deltarune",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "light-world-kris-deltarune-9c8306",
+    "light world kris deltarune"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-light-world-kris-deltarune-9c8306"
+  }
+}
