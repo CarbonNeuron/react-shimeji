@@ -174,6 +174,67 @@ describe("ShimejiEngine lifecycle", () => {
     engine.destroy();
   });
 
+  it("turns grounded mascots around before they walk through each other", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    document.body.append(host);
+    const engine = new ShimejiEngine(host);
+    engine.registerCharacter({
+      ...spec,
+      actions: [...spec.actions, animatedAction("Walk", { x: -8, y: 0 })],
+      behaviors: [{ ...spec.behaviors[0]!, frequency: 0 }, behavior("Walk")],
+    });
+    engine.spawn("test", { x: 100, y: 300, lookRight: true, behaviorName: "Walk" });
+    engine.spawn("test", { x: 140, y: 300, lookRight: false, behaviorName: "Walk" });
+
+    frame?.(40);
+
+    expect(engine.getState()).toMatchObject([
+      { x: 100, y: 300, lookRight: false, behaviorName: "Walk" },
+      { x: 140, y: 300, lookRight: true, behaviorName: "Walk" },
+    ]);
+
+    frame?.(80);
+
+    expect(engine.getState()).toMatchObject([
+      { x: 92, y: 300, lookRight: false, behaviorName: "Walk" },
+      { x: 148, y: 300, lookRight: true, behaviorName: "Walk" },
+    ]);
+    engine.destroy();
+  });
+
+  it("does not block a falling mascot when it overlaps a sibling", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    document.body.append(host);
+    const engine = new ShimejiEngine(host);
+    engine.registerCharacter({
+      ...spec,
+      actions: [
+        { ...spec.actions[0]!, initialVx: 20, initialVy: 20 },
+        animatedAction("Sit", { x: 0, y: 0 }),
+      ],
+      behaviors: [spec.behaviors[0]!, behavior("Sit")],
+    });
+    engine.spawn("test", { x: 100, y: 250, behaviorName: "Fall" });
+    engine.spawn("test", { x: 128, y: 300, behaviorName: "Sit" });
+
+    frame?.(40);
+
+    expect(engine.getState()[0]).toMatchObject({ x: 119, y: 270, lookRight: true, behaviorName: "Fall" });
+    engine.destroy();
+  });
+
   it("selects an IE jump from the floor when a platform is nearby", () => {
     let frame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));

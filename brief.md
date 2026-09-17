@@ -1,30 +1,27 @@
-# Bug: IE behaviors lose the weighted random roll at platform edges
+# Feature: Mascot-to-mascot collision avoidance
 
-## Current state
-The `selectEdgeBehavior()` fix from the last round WORKS — mascots no longer unconditionally fall when they reach a platform edge. But the behavior system calls `selectNextBehavior()` which draws from the full behavior pool weighted by `frequency`. IE-specific behaviors (wall-climb, jump-to-IE, ceiling-crawl) have low frequency weights compared to mundane behaviors (sit, stand, walk, turn around). So at platform edges, mascots almost always pick a non-IE behavior — they sit down, turn around, or idle, instead of climbing or jumping.
+## Goal
+Mascots should be aware of each other and avoid walking through each other. When two mascots are about to collide, they should react — turn around, stop, jump over, or otherwise acknowledge the other mascot's presence instead of just phasing through.
 
-Bowser was the only character that jumped/climbed, likely because his XML gives higher frequency to IE behaviors.
+## How it should work
 
-## How Java Shimeji-ee handles this
-In the original Java Shimeji-ee, when a mascot is ON an IE (platform), it specifically uses IE-variant behaviors. The behavior selection isn't just "pick from the global pool" — there's contextual behavior selection where being on/near an IE biases toward IE behaviors. The `nextBehaviors` chains in the XML are designed so that IE-walking leads to IE-specific transitions.
+1. **Collision detection**: Each tick, each mascot should check if any other mascot's bounding box overlaps or is about to overlap with theirs. The bounding box can be derived from the mascot's position (x, y) and sprite dimensions (anchorX, anchorY + some reasonable hitbox width/height — maybe 32x64 or derived from the sprite sheet).
 
-## The fix needed
-In `selectEdgeBehavior()` (mascot.ts), when a mascot triggers `lost-ground` at a platform edge:
+2. **Avoidance behavior**: When a mascot detects another mascot in its path:
+   - If walking and about to collide: turn around (flip `lookRight`) or stop
+   - If falling toward another mascot: allow it (don't block gravity)
+   - Keep it simple — no complex pathfinding, just basic "don't walk into each other"
 
-1. **First, try to select ONLY from IE-relevant behaviors** — filter the behavior pool to behaviors whose conditions reference `activeIE` (or whose names contain "IE"/"ＩＥ"/wall/climb patterns). If one matches, use it.
-2. **Only fall back to the full pool if no IE behavior matches** — this preserves the current behavior as a fallback.
+3. **Implementation approach**: The engine already has a `MascotManager` or equivalent that tracks all mascots. Each mascot's `legacyTick()` gets `bounds` and `platforms` — we'd need to also pass sibling mascot positions. Options:
+   - Add a `siblings` or `others` parameter to the tick that contains positions/bounding boxes of all other mascots
+   - Or query the mascot manager/engine for nearby mascots during tick
 
-Alternatively, look at how the behavior `nextBehaviors` chains work. When a mascot is doing `WalkWithIE` (walking on a platform), the `nextBehaviors` for that behavior should include IE-specific transitions. Check if:
-- The current behavior's `nextBehaviors` already includes climb/jump behaviors
-- The issue is that `selectEdgeBehavior()` calls `selectNextBehavior()` which uses `this.previous` — but `this.previous` may have been reset when `actions.cancel()` was called before `selectEdgeBehavior()`, losing the "I was walking on a platform" context
+4. **Soft collision, not hard**: Mascots shouldn't block each other rigidly (that causes physics issues). Instead, treat nearby mascots as a behavioral signal — "there's someone in my way, I should do something different." This is a behavior-level reaction, not a physics-level wall.
 
-## Key files
-- `packages/core/src/mascot.ts` — `selectEdgeBehavior()` (the method from the last fix), `legacyTick()` lost-ground handler
-- `packages/core/src/behavior.ts` — `selectNext()` (line 253), `choose()` (line 271) — this is where the weighted selection happens
-- Look at the XML behavior definitions for a character like Beemo — what are the `nextBehaviors` for `WalkWithIE`/`IEの上で歩く`? Do they chain to climb/jump behaviors?
-
-## Constraints
+## Key constraints
+- Performance: collision checks should be O(n) per mascot, not O(n²) — or if O(n²), keep it cheap (just position distance checks, no complex geometry)
+- Don't break existing behavior transitions — collision avoidance should be a gentle nudge, not a hard override
+- Mascots should still be able to exist near each other (e.g., both standing on the same platform), just not walk THROUGH each other
 - Run `npx vitest run` and `npx tsc --noEmit` — all must pass
-- Don't break normal (non-IE) behavior transitions
-- The existing 45 tests must still pass plus any new ones you add
 - Work in `~/react-shimeji`
+- Do NOT bump versions or modify package.json
