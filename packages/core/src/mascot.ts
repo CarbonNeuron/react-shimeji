@@ -42,17 +42,8 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
 
 const PLATFORM_NEARBY_DISTANCE = 400;
 const PLATFORM_EDGE_TOLERANCE = 2;
-const MASCOT_HITBOX_MAX_WIDTH = 32;
-const MASCOT_HITBOX_MAX_HEIGHT = 64;
-const MASCOT_COLLISION_LOOKAHEAD = 4;
 const IE_BEHAVIOR_NAME_PATTERN = /wall|climb|crawl|壁|登|よじ/i;
 
-/** Lightweight geometry shared between mascots for behavioral collision avoidance. */
-export interface MascotCollisionBox extends Rectangle {
-  id: string;
-  /** Stable anchor position, unaffected by sprite mirroring. */
-  positionX: number;
-}
 
 function isIEBehavior(behavior: BehaviorDefinition): boolean {
   return behavior.conditions.some((condition) => /activeIE/i.test(condition))
@@ -135,7 +126,6 @@ export class Mascot {
     deltaMs: number,
     bounds: Rectangle,
     platforms: readonly PlatformRectangle[] = [],
-    siblings: readonly MascotCollisionBox[] = [],
   ): void {
     if (this.destroyed) return;
     this.platforms = platforms;
@@ -144,7 +134,7 @@ export class Mascot {
       this.accumulatedMs += Math.max(0, deltaMs);
       while (this.accumulatedMs >= this.frameDuration && !this.destroyed) {
         this.accumulatedMs -= this.frameDuration;
-        this.legacyTick(bounds, platforms, siblings);
+        this.legacyTick(bounds, platforms);
       }
     } catch (error) {
       this.callbacks.error(error instanceof Error ? error : new Error(String(error)));
@@ -157,25 +147,7 @@ export class Mascot {
   /** Returns a detached snapshot safe for application code to retain. */
   public snapshot(): MascotState { return { ...this.state }; }
 
-  /** Returns the mascot's compact, feet-aligned behavioral collision box. */
-  public collisionBox(): MascotCollisionBox {
-    const sprite = this.spec.sprites[this.state.sprite];
-    const spriteWidth = typeof sprite === "object" && sprite.width !== undefined ? sprite.width : 128;
-    const spriteHeight = typeof sprite === "object" && sprite.height !== undefined ? sprite.height : 128;
-    const width = Math.min(spriteWidth, MASCOT_HITBOX_MAX_WIDTH);
-    const height = Math.min(spriteHeight, MASCOT_HITBOX_MAX_HEIGHT);
-    const anchorX = this.state.lookRight ? spriteWidth - this.state.anchorX : this.state.anchorX;
-    const visualLeft = this.state.x - anchorX;
-    const visualTop = this.state.y - this.state.anchorY;
-    return {
-      id: this.id,
-      positionX: this.state.x,
-      x: visualLeft + (spriteWidth - width) / 2,
-      y: visualTop + spriteHeight - height,
-      width,
-      height,
-    };
-  }
+
 
   /** Removes listeners, DOM nodes, and object URLs owned by this mascot. */
   public destroy(): void {
@@ -215,14 +187,12 @@ export class Mascot {
   private legacyTick(
     bounds: Rectangle,
     platforms: readonly PlatformRectangle[],
-    siblings: readonly MascotCollisionBox[],
   ): void {
     this.ensureBehavior(bounds, platforms, false);
     if (!this.currentBehavior) return;
     const previous = { x: this.state.x, y: this.state.y };
     const result = this.actions.step(this.createEnvironment(bounds, platforms), bounds, platforms);
     if (this.destroyed) return;
-    this.avoidSiblingCollision(previous, bounds, platforms, siblings);
     if (result === "lost-ground") {
       this.state.dragging = false;
       this.actions.cancel();
@@ -241,68 +211,6 @@ export class Mascot {
     }
   }
 
-  private avoidSiblingCollision(
-    previous: Point,
-    bounds: Rectangle,
-    platforms: readonly PlatformRectangle[],
-    siblings: readonly MascotCollisionBox[],
-  ): void {
-    const dx = this.state.x - previous.x;
-    if (this.state.dragging || dx === 0 || this.state.y !== previous.y) return;
-    const onHorizontalSurface = isOnFloor(previous, bounds, platforms)
-      || isOnTop(previous, bounds)
-      || platforms.some((platform) => isOnBottom(previous, platform));
-    if (!onHorizontalSurface) return;
-
-    const currentBox = this.collisionBox();
-    const offsetX = currentBox.x - this.state.x;
-    const previousBox = { ...currentBox, x: previous.x + offsetX };
-    const movingRight = dx > 0;
-    const sweptLeft = Math.min(previousBox.x, currentBox.x) - (movingRight ? 0 : MASCOT_COLLISION_LOOKAHEAD);
-    const sweptRight = Math.max(previousBox.x + previousBox.width, currentBox.x + currentBox.width)
-      + (movingRight ? MASCOT_COLLISION_LOOKAHEAD : 0);
-
-    const overlappingSiblings = siblings.filter((sibling) => {
-      if (sibling.id === this.id) return false;
-      const overlapsVertically = currentBox.y < sibling.y + sibling.height
-        && sibling.y < currentBox.y + currentBox.height;
-      const overlapsHorizontally = previousBox.x < sibling.x + sibling.width
-        && sibling.x < previousBox.x + previousBox.width;
-      return overlapsVertically && (overlapsHorizontally || sibling.positionX === previous.x);
-    });
-    if (overlappingSiblings.length > 0) {
-      const coincidentIds = [
-        this.id,
-        ...overlappingSiblings
-          .filter((sibling) => sibling.positionX === previous.x)
-          .map((sibling) => sibling.id),
-      ].sort();
-      const escapeRight = coincidentIds.length > 1
-        ? coincidentIds.indexOf(this.id) >= coincidentIds.length / 2
-        : overlappingSiblings.reduce((sum, sibling) => sum + sibling.positionX, 0)
-          / overlappingSiblings.length < previous.x;
-      if (movingRight !== escapeRight) {
-        this.state.x = previous.x;
-        this.state.vx = 0;
-        this.state.lookRight = !this.state.lookRight;
-      }
-      return;
-    }
-
-    const collision = siblings.some((sibling) => {
-      if (sibling.id === this.id) return false;
-      const isAhead = movingRight ? sibling.positionX > previous.x : sibling.positionX < previous.x;
-      const overlapsVertically = currentBox.y < sibling.y + sibling.height
-        && sibling.y < currentBox.y + currentBox.height;
-      const crossesHorizontally = sweptLeft <= sibling.x + sibling.width && sibling.x <= sweptRight;
-      return isAhead && overlapsVertically && crossesHorizontally;
-    });
-    if (!collision) return;
-
-    this.state.x = previous.x;
-    this.state.vx = 0;
-    this.state.lookRight = !this.state.lookRight;
-  }
 
   private isOutsideVisibleBounds(bounds: Rectangle): boolean {
     const sprite = this.spec.sprites[this.state.sprite];

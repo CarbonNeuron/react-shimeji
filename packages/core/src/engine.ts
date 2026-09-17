@@ -1,6 +1,6 @@
 import { DomManager } from "./dom";
 import { normalizeCharacterSpec } from "./loader";
-import { Mascot, type MascotCollisionBox } from "./mascot";
+import { Mascot } from "./mascot";
 import { readPlatformRectangles, resolvePlatformElements, type PlatformRectangle } from "./platform";
 import { SpriteManager } from "./sprite";
 import type { CharacterSpec, MascotState, ShimejiEngineEventMap, ShimejiEngineOptions, ShimejiEventListener, SpawnOptions } from "./types";
@@ -200,8 +200,7 @@ export class ShimejiEngine {
     const delta = Math.max(0, Math.min(rawDelta, this.options.maxDeltaTime));
     const { bounds, platforms } = this.readFrameGeometry();
     const mascots = [...this.mascots.values()];
-    const collisionBoxes: MascotCollisionBox[] = mascots.map((mascot) => mascot.collisionBox());
-    for (const mascot of mascots) mascot.tick(delta, bounds, platforms, collisionBoxes);
+    for (const mascot of mascots) mascot.tick(delta, bounds, platforms);
     this.emitState();
     this.animationFrame = this.container.ownerDocument.defaultView?.requestAnimationFrame(this.onAnimationFrame);
   };
