@@ -48,6 +48,26 @@ export function ShimejiContainer({
       const character = characters[characterIndex];
       if (character) engine.spawn(character.id);
     }
+
+    // When a mascot exits or breeds away, spawn a random replacement to maintain count
+    const unsubRemove = engine.on("remove", () => {
+      if (characters.length === 0) return;
+      const liveCount = engine.getState().length;
+      if (liveCount < desiredCount) {
+        const character = characters[Math.floor(Math.random() * characters.length)];
+        if (character) engine.spawn(character.id);
+      }
+    });
+
+    // Cap breed spawns — remove excess when mascots multiply beyond desired count
+    const unsubSpawn = engine.on("spawn", () => {
+      const live = engine.getState();
+      if (live.length > desiredCount) {
+        for (const mascot of live.slice(desiredCount)) engine.remove(mascot.id);
+      }
+    });
+
+    return () => { unsubRemove(); unsubSpawn(); };
   }, [engine, characterIds, characters, count, enabled, randomize]);
 
   return (

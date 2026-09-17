@@ -39,6 +39,7 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
 }
 
 const PLATFORM_NEARBY_DISTANCE = 400;
+const PLATFORM_EDGE_TOLERANCE = 16;
 
 function distanceToRectangle(point: Point, rectangle: Rectangle): number {
   const dx = Math.max(rectangle.x - point.x, 0, point.x - rectangle.x - rectangle.width);
@@ -113,10 +114,14 @@ export class Mascot {
           }
           if (!started) break;
         }
-        const wasOnPlatformTop = environment.mascot.environment.activeIE.visible
-          && environment.mascot.environment.activeIE.topBorder.isOn(this.state);
+        const activeIE = environment.mascot.environment.activeIE;
+        const wasOnPlatformTop = activeIE.visible && activeIE.topBorder.isOn(this.state);
         const completed = this.actions.tick(deltaMs, environment, bounds);
-        if (wasOnPlatformTop && !platforms.some((platform) => isOnTop(this.state, platform))) {
+        const remainedNearPlatform = this.state.x >= activeIE.left - PLATFORM_EDGE_TOLERANCE
+          && this.state.x <= activeIE.right + PLATFORM_EDGE_TOLERANCE;
+        if (wasOnPlatformTop
+          && !remainedNearPlatform
+          && !platforms.some((platform) => isOnTop(this.state, platform))) {
           this.actions.cancel();
           this.currentBehavior = this.findFallBehavior();
           if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms));
