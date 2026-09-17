@@ -68,4 +68,38 @@ describe("weighted selection", () => {
     expect(controller.selectNext(environment)).toBe(fall);
     expect(controller.usedFallback()).toBe(true);
   });
+
+  it("tries a weighted subset without letting unrelated global weights compete", () => {
+    const makeBehavior = (name: string, frequency: number): BehaviorDefinition => ({
+      type: "Behavior", name, frequency, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false,
+    });
+    const walk = makeBehavior("WalkWithIE", 1);
+    const climb = makeBehavior("ClimbIEWall", 1);
+    const character = {
+      id: "contextual", spritesheet: "", sprites: {}, actions: [],
+      behaviors: [walk, makeBehavior("Sit", 1_000), climb],
+    } satisfies CharacterSpec;
+    const controller = new BehaviorController(character, () => 0.99);
+    controller.selectInitial(environment, "WalkWithIE");
+
+    expect(controller.trySelectNext(environment, (candidate) => (
+      candidate.name !== "WalkWithIE" && candidate.name.includes("IE")
+    ))?.name).toBe("ClimbIEWall");
+  });
+
+  it("keeps transition history when a subset has no applicable behavior", () => {
+    const next: BehaviorDefinition = {
+      type: "Reference", name: "Next", frequency: 1, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false,
+    };
+    const current: BehaviorDefinition = {
+      type: "Behavior", name: "Current", frequency: 1, conditions: [], nextBehaviors: [next], nextAdditive: false, groupIndex: 0, hidden: false,
+    };
+    const target = { ...next, type: "Behavior" as const };
+    const character = { id: "history", spritesheet: "", sprites: {}, actions: [], behaviors: [current, target] } satisfies CharacterSpec;
+    const controller = new BehaviorController(character, () => 0);
+    controller.selectInitial(environment, "Current");
+
+    expect(controller.trySelectNext(environment, () => false)).toBeUndefined();
+    expect(controller.selectNext(environment)?.name).toBe("Next");
+  });
 });

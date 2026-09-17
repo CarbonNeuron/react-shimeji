@@ -42,6 +42,20 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
 
 const PLATFORM_NEARBY_DISTANCE = 400;
 const PLATFORM_EDGE_TOLERANCE = 2;
+const IE_BEHAVIOR_NAME_PATTERN = /wall|climb|crawl|壁|登|よじ/i;
+
+function isIEBehavior(behavior: BehaviorDefinition): boolean {
+  return behavior.conditions.some((condition) => /activeIE/i.test(condition))
+    || behavior.name.includes("IE")
+    || behavior.name.includes("ＩＥ")
+    || IE_BEHAVIOR_NAME_PATTERN.test(behavior.name)
+    || (behavior.actionName !== undefined && (
+      behavior.actionName.includes("IE")
+      || behavior.actionName.includes("ＩＥ")
+      || IE_BEHAVIOR_NAME_PATTERN.test(behavior.actionName)
+    ));
+}
+
 function distanceToRectangle(point: Point, rectangle: Rectangle): number {
   const dx = Math.max(rectangle.x - point.x, 0, point.x - rectangle.x - rectangle.width);
   const dy = Math.max(rectangle.y - point.y, 0, point.y - rectangle.y - rectangle.height);
@@ -226,7 +240,12 @@ export class Mascot {
       }
     }
 
-    const selected = this.selectNextBehavior(this.createEnvironment(bounds, platforms), bounds, false);
+    const environment = this.createEnvironment(bounds, platforms);
+    const interruptedBehavior = this.currentBehavior;
+    const selected = this.behavior.trySelectNext(environment, (candidate) => (
+      candidate.name !== interruptedBehavior?.name && isIEBehavior(candidate)
+    ))
+      ?? this.selectNextBehavior(environment, bounds, false);
     if (this.behavior.usedFallback() || selected?.name === "Fall" || selected?.name === "落下する") {
       this.state.x = original.x;
       this.state.y = original.y;

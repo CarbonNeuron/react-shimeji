@@ -251,11 +251,17 @@ export class BehaviorController {
 
   /** Selects the weighted transition following the current behavior. */
   public selectNext(environment: MascotEnvironment): BehaviorDefinition | undefined {
-    const next = this.previous?.nextBehaviors ?? [];
-    const pool = this.previous && this.previous.nextAdditive === false ? next : [...this.spec.behaviors, ...next];
-    const selected = this.choose(pool, environment);
+    const selected = this.choose(this.nextPool(), environment);
     this.fallbackSelected = selected === undefined;
     return (this.previous = selected ?? this.findFallBehavior());
+  }
+
+  /** Tries a weighted transition from a subset without changing history when none applies. */
+  public trySelectNext(environment: MascotEnvironment, predicate: (behavior: BehaviorDefinition) => boolean): BehaviorDefinition | undefined {
+    const selected = this.choose(this.nextPool().filter(predicate), environment);
+    if (!selected) return undefined;
+    this.fallbackSelected = false;
+    return (this.previous = selected);
   }
 
   /** Whether the most recent transition had no effective weighted candidate. */
@@ -272,6 +278,11 @@ export class BehaviorController {
     const applicable = pool.filter((behavior) => conditionsMatch(behavior.conditions, environment, this.random));
     const chosen = selectWeighted(applicable, (behavior) => behavior.frequency, this.random);
     return chosen ? this.resolve(chosen) : undefined;
+  }
+
+  private nextPool(): readonly BehaviorDefinition[] {
+    const next = this.previous?.nextBehaviors ?? [];
+    return this.previous && this.previous.nextAdditive === false ? next : [...this.spec.behaviors, ...next];
   }
 
   private resolve(behavior: BehaviorDefinition): BehaviorDefinition {
