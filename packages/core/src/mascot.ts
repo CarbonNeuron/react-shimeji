@@ -1,6 +1,8 @@
 import { ActionExecutor } from "./action";
 import { BehaviorController } from "./behavior";
 import type { DomManager, MascotDomHandle } from "./dom";
+import { isOnBottom, isOnLeft, isOnRight, isOnTop } from "./physics";
+import type { PlatformRectangle } from "./platform";
 import type { BehaviorDefinition, CharacterSpec, EnvironmentEdge, EnvironmentRectangle, MascotEnvironment, MascotState, Point, Rectangle, ShimejiEngineOptions, SpawnOptions } from "./types";
 
 /** Callbacks through which a mascot communicates with its owning engine. */
@@ -27,12 +29,21 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
   const top = bounds.y;
   const bottom = bounds.y + bounds.height;
   return {
-    ...bounds, left, right, top, bottom,
-    topBorder: edge((point) => Math.abs(point.y - top) <= 1),
-    leftBorder: edge((point) => Math.abs(point.x - left) <= 1),
-    rightBorder: edge((point) => Math.abs(point.x - right) <= 1),
-    bottomBorder: edge((point) => Math.abs(point.y - bottom) <= 1),
+    x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height,
+    left, right, top, bottom,
+    topBorder: edge((point) => isOnTop(point, bounds)),
+    leftBorder: edge((point) => isOnLeft(point, bounds)),
+    rightBorder: edge((point) => isOnRight(point, bounds)),
+    bottomBorder: edge((point) => isOnBottom(point, bounds)),
   };
+}
+
+const PLATFORM_NEARBY_DISTANCE = 400;
+
+function distanceToRectangle(point: Point, rectangle: Rectangle): number {
+  const dx = Math.max(rectangle.x - point.x, 0, point.x - rectangle.x - rectangle.width);
+  const dy = Math.max(rectangle.y - point.y, 0, point.y - rectangle.y - rectangle.height);
+  return Math.hypot(dx, dy);
 }
 
 /** Owns one mascot's state machine, interaction listeners, and DOM resource. */
@@ -49,6 +60,8 @@ export class Mascot {
   private pointerId: number | undefined;
   private pointerDown: Point | undefined;
   private lastPointer: Point | undefined;
+  private activePlatformElement: HTMLElement | undefined;
+  private platforms: readonly PlatformRectangle[] = [];
 
   /** Creates a mascot and immediately installs its pointer handlers. */
   public constructor(
@@ -84,9 +97,10 @@ export class Mascot {
   }
 
   /** Advances behavior, animation, physics, and rendering by one clock tick. */
-  public tick(deltaMs: number, bounds: Rectangle): void {
+  public tick(deltaMs: number, bounds: Rectangle, platforms: readonly PlatformRectangle[] = []): void {
     if (this.destroyed) return;
-    const environment = this.createEnvironment(bounds);
+    this.platforms = platforms;
+    const environment = this.createEnvironment(bounds, platforms);
     if (this.state.dragging) { this.dom.render(this.domHandle, this.spec, this.state); return; }
     try {
       for (let guard = 0; guard < 8; guard += 1) {
@@ -99,12 +113,21 @@ export class Mascot {
           }
           if (!started) break;
         }
-        if (!this.actions.tick(deltaMs, environment, bounds)) break;
-        if (this.destroyed) return;
-        this.currentBehavior = this.behavior.selectNext(this.createEnvironment(bounds));
-        if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds))) {
+        const wasOnPlatformTop = environment.mascot.environment.activeIE.visible
+          && environment.mascot.environment.activeIE.topBorder.isOn(this.state);
+        const completed = this.actions.tick(deltaMs, environment, bounds);
+        if (wasOnPlatformTop && !platforms.some((platform) => isOnTop(this.state, platform))) {
+          this.actions.cancel();
           this.currentBehavior = this.findFallBehavior();
-          if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds))) break;
+          if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms));
+          break;
+        }
+        if (!completed) break;
+        if (this.destroyed) return;
+        this.currentBehavior = this.behavior.selectNext(this.createEnvironment(bounds, platforms));
+        if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds, platforms))) {
+          this.currentBehavior = this.findFallBehavior();
+          if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds, platforms))) break;
         }
         deltaMs = 0;
       }
@@ -138,9 +161,13 @@ export class Mascot {
     return this.behavior.force("Fall") ?? this.behavior.force("落下する");
   }
 
-  private createEnvironment(bounds: Rectangle): MascotEnvironment {
+  private createEnvironment(bounds: Rectangle, platforms: readonly PlatformRectangle[] = this.platforms): MascotEnvironment {
     const workArea = environmentRectangle(bounds);
     const inactive = environmentRectangle({ x: -100, y: -100, width: 0, height: 0 });
+    const platform = this.selectActivePlatform(platforms);
+    const activeIE = platform
+      ? { ...environmentRectangle(platform), visible: true }
+      : { ...inactive, visible: false };
     return {
       gap: 0,
       maxCount: 999,
@@ -154,10 +181,42 @@ export class Mascot {
           workArea,
           floor: workArea.bottomBorder,
           ceiling: workArea.topBorder,
-          activeIE: { ...inactive, visible: false },
+          activeIE,
         },
       },
     };
+  }
+
+  private selectActivePlatform(platforms: readonly PlatformRectangle[]): PlatformRectangle | undefined {
+    if (platforms.length === 0) {
+      this.activePlatformElement = undefined;
+      return undefined;
+    }
+    const anchor = this.state;
+    const current = platforms.find((platform) => platform.element === this.activePlatformElement);
+    if (current && (
+      isOnTop(anchor, current, 2)
+      || isOnBottom(anchor, current, 2)
+      || isOnLeft(anchor, current, 2)
+      || isOnRight(anchor, current, 2)
+    )) return current;
+
+    if (this.state.vy >= 0) {
+      const landingPlatform = platforms
+        .filter((platform) => anchor.x >= platform.x && anchor.x <= platform.x + platform.width && platform.y >= anchor.y - 1)
+        .sort((left, right) => left.y - right.y)[0];
+      if (landingPlatform) {
+        this.activePlatformElement = landingPlatform.element;
+        return landingPlatform;
+      }
+    }
+
+    const nearby = [...platforms]
+      .map((platform) => ({ platform, distance: distanceToRectangle(anchor, platform) }))
+      .filter(({ distance }) => distance <= PLATFORM_NEARBY_DISTANCE)
+      .sort((left, right) => left.distance - right.distance)[0]?.platform;
+    this.activePlatformElement = nearby?.element;
+    return nearby;
   }
 
   private installPointerHandlers(): void {

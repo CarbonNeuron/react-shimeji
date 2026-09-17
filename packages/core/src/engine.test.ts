@@ -37,4 +37,66 @@ describe("ShimejiEngine lifecycle", () => {
     expect(host.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     expect(engine.isDestroyed()).toBe(true);
   });
+
+  it("reads each platform once per frame and lands falling mascots on its top edge", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const platform = document.createElement("div");
+    platform.className = "platform";
+    document.body.append(platform);
+    const platformRectangle = vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
+      left: 110, top: 220, width: 200, height: 40,
+    } as DOMRect);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { platforms: ".platform" });
+    const workArea = host.querySelector<HTMLElement>("[data-react-shimeji-work-area]")!;
+    vi.spyOn(workArea, "getBoundingClientRect").mockReturnValue({
+      left: 10, top: 20, width: 500, height: 400,
+    } as DOMRect);
+    engine.registerCharacter(spec);
+    engine.spawn("test", { x: 150, y: 190, vy: 20 });
+    engine.spawn("test", { x: 180, y: 190, vy: 20 });
+    platformRectangle.mockClear();
+
+    frame?.(40);
+
+    expect(platformRectangle).toHaveBeenCalledOnce();
+    expect(engine.getState().map(({ y }) => y)).toEqual([200, 200]);
+    engine.destroy();
+  });
+
+  it("switches a mascot to falling when it walks past a platform edge", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const platform = document.createElement("div");
+    document.body.append(platform);
+    vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
+      left: 100, top: 200, width: 200, height: 40,
+    } as DOMRect);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { platforms: [platform] });
+    const workArea = host.querySelector<HTMLElement>("[data-react-shimeji-work-area]")!;
+    vi.spyOn(workArea, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, width: 500, height: 400,
+    } as DOMRect);
+    engine.registerCharacter({
+      ...spec,
+      actions: [
+        ...spec.actions,
+        { type: "Animate", name: "Walk", duration: 10, animations: [{ poses: [{ sprite: "/shime1.png", anchor: { x: 16, y: 32 }, velocity: { x: 10, y: 0 }, duration: 10 }] }] },
+      ],
+      behaviors: [
+        ...spec.behaviors,
+        { type: "Behavior", name: "Walk", frequency: 1, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false },
+      ],
+    });
+    engine.spawn("test", { x: 295, y: 200, behaviorName: "Walk" });
+
+    frame?.(40);
+
+    expect(engine.getState()[0]).toMatchObject({ x: 305, y: 200, behaviorName: "Fall" });
+    engine.destroy();
+  });
 });

@@ -241,6 +241,8 @@ export interface ShimejiEngineOptions {
   workAreaClassName?: string;
   /** CSS class added to each generated mascot element. */
   mascotClassName?: string;
+  /** DOM elements, or a selector for elements, that mascots can use as platforms. */
+  platforms?: string | readonly HTMLElement[];
   /** Optional deterministic random-number source. */
   random?: () => number;
 }
@@ -284,7 +286,7 @@ export interface MascotEnvironment {
       floor: EnvironmentEdge;
       /** Alias for the work-area top edge. */
       ceiling: EnvironmentEdge;
-      /** Inactive compatibility rectangle for page-element actions. */
+      /** Most relevant DOM platform for page-element actions. */
       activeIE: EnvironmentRectangle & { visible: boolean };
     };
   };

@@ -1,6 +1,7 @@
 import { DomManager } from "./dom";
 import { normalizeCharacterSpec } from "./loader";
 import { Mascot } from "./mascot";
+import { readPlatformRectangles, resolvePlatformElements, type PlatformRectangle } from "./platform";
 import { SpriteManager } from "./sprite";
 import type { CharacterSpec, MascotState, ShimejiEngineEventMap, ShimejiEngineOptions, ShimejiEventListener, SpawnOptions } from "./types";
 
@@ -24,6 +25,7 @@ const defaults = {
   maxDeltaTime: 100,
   workAreaClassName: "",
   mascotClassName: "",
+  platforms: [] as readonly HTMLElement[],
 } as const;
 
 type ResolvedEngineOptions = Required<Omit<ShimejiEngineOptions, "random">> & { random: (() => number) | undefined };
@@ -46,11 +48,13 @@ export class ShimejiEngine {
   private nextMascotId = 1;
   private destroyed = false;
   private initialized = false;
+  private platformSource: string | readonly HTMLElement[];
 
   /** Creates and initializes an engine inside a host DOM element. */
   public constructor(private readonly container: HTMLElement, options: ShimejiEngineOptions = {}) {
     if (!container) throw new TypeError("ShimejiEngine requires a container element");
     this.options = { ...defaults, ...options, random: options.random };
+    this.platformSource = this.options.platforms;
     this.originalContainerPosition = container.style.position;
     this.adjustedContainerPosition = getComputedStyle(container).position === "static";
     if (this.adjustedContainerPosition) container.style.position = "relative";
@@ -101,12 +105,12 @@ export class ShimejiEngine {
     this.assertAlive();
     const spec = this.specs.get(characterId);
     if (!spec) throw new Error(`Character '${characterId}' is not registered`);
-    const bounds = this.dom.getBounds();
+    const { bounds, platforms } = this.readFrameGeometry();
     const random = this.options.random ?? Math.random;
     const spawnOptions: SpawnOptions = {
       ...position,
       x: position.x ?? bounds.x + random() * bounds.width,
-      y: position.y ?? bounds.y + random() * bounds.height,
+      y: position.y ?? bounds.y,
     };
     const id = `shimeji-${this.nextMascotId++}`;
     const mascot = new Mascot(id, spec, this.dom, this.options, spawnOptions, {
@@ -118,7 +122,7 @@ export class ShimejiEngine {
       error: (error) => this.events.emit("error", error),
     });
     this.mascots.set(id, mascot);
-    mascot.tick(0, bounds);
+    mascot.tick(0, bounds, platforms);
     const state = mascot.snapshot();
     this.events.emit("spawn", state);
     this.emitState();
@@ -153,6 +157,12 @@ export class ShimejiEngine {
     return this.events.on(event, listener);
   }
 
+  /** Replaces the DOM elements (or selector) exposed to mascots as platforms. */
+  public setPlatforms(platforms: string | readonly HTMLElement[]): void {
+    this.assertAlive();
+    this.platformSource = platforms;
+  }
+
   /** Stops animation and timers, removes listeners and DOM, and revokes all object URLs. */
   public destroy(): void {
     if (this.destroyed) return;
@@ -180,15 +190,22 @@ export class ShimejiEngine {
     const rawDelta = this.lastFrameTime === undefined ? this.options.frameDuration : timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
     const delta = Math.max(0, Math.min(rawDelta, this.options.maxDeltaTime));
-    const bounds = this.dom.getBounds();
-    for (const mascot of [...this.mascots.values()]) mascot.tick(delta, bounds);
+    const { bounds, platforms } = this.readFrameGeometry();
+    for (const mascot of [...this.mascots.values()]) mascot.tick(delta, bounds, platforms);
     this.emitState();
     this.animationFrame = requestAnimationFrame(this.onAnimationFrame);
   };
 
   private renderAll(): void {
-    const bounds = this.dom.getBounds();
-    for (const mascot of this.mascots.values()) mascot.tick(0, bounds);
+    const { bounds, platforms } = this.readFrameGeometry();
+    for (const mascot of this.mascots.values()) mascot.tick(0, bounds, platforms);
+  }
+
+  private readFrameGeometry(): { bounds: ReturnType<DomManager["getBounds"]>; platforms: PlatformRectangle[] } {
+    const workAreaRectangle = this.dom.workArea.getBoundingClientRect();
+    const bounds = this.dom.getBoundsFromClientRectangle(workAreaRectangle);
+    const elements = resolvePlatformElements(this.platformSource, this.container.ownerDocument, this.dom.workArea);
+    return { bounds, platforms: readPlatformRectangles(elements, workAreaRectangle) };
   }
 
   private emitState(): void { this.events.emit("statechange", this.getState()); }

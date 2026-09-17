@@ -8,6 +8,9 @@ export { BehaviorController, conditionsMatch, evaluateExpression, selectWeighted
 export { ActionExecutor } from "./action";
 /** Geometry and physics helpers. */
 export { applyGravity, clamp, isOnBorder, isOnBottom, isOnLeft, isOnRight, isOnTop, moveToward } from "./physics";
+/** DOM platform geometry utilities. */
+export { readPlatformRectangles, resolvePlatformElements } from "./platform";
+export type { PlatformRectangle } from "./platform";
 /** Sprite resource manager. */
 export { SpriteManager, isIndividualSprite } from "./sprite";
 export type * from "./types";

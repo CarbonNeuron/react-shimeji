@@ -26,11 +26,18 @@ export function isOnRight(point: Point, rectangle: Rectangle, tolerance = 1): bo
 }
 
 /** Returns whether an anchor satisfies an action's boundary requirement. */
-export function isOnBorder(state: MascotState, bounds: Rectangle, border: "Floor" | "Wall" | "Ceiling" | undefined): boolean {
+export function isOnBorder(
+  state: MascotState,
+  bounds: Rectangle,
+  border: "Floor" | "Wall" | "Ceiling" | undefined,
+  platform?: Rectangle,
+): boolean {
   if (!border) return true;
-  if (border === "Floor") return isOnBottom(state, bounds);
-  if (border === "Ceiling") return isOnTop(state, bounds);
-  return isOnLeft(state, bounds) || isOnRight(state, bounds);
+  if (border === "Floor") return isOnBottom(state, bounds) || (platform !== undefined && isOnTop(state, platform));
+  if (border === "Ceiling") return isOnTop(state, bounds) || (platform !== undefined && isOnBottom(state, platform));
+  return isOnLeft(state, bounds)
+    || isOnRight(state, bounds)
+    || (platform !== undefined && (isOnLeft(state, platform) || isOnRight(state, platform)));
 }
 
 /** Advances ballistic motion and clamps the mascot to the work-area boundaries. */
@@ -41,11 +48,27 @@ export function applyGravity(
   gravity: number,
   resistanceX = 0.05,
   resistanceY = 0.01,
+  platform?: Rectangle,
 ): boolean {
-  state.x = clamp(state.x + state.vx * frameScale, bounds.x, bounds.x + bounds.width);
-  state.y = clamp(state.y + state.vy * frameScale, bounds.y, bounds.y + bounds.height);
+  const previousY = state.y;
+  const nextX = clamp(state.x + state.vx * frameScale, bounds.x, bounds.x + bounds.width);
+  const nextY = clamp(state.y + state.vy * frameScale, bounds.y, bounds.y + bounds.height);
+  state.x = nextX;
+  state.y = nextY;
   state.vx *= Math.max(0, 1 - resistanceX * frameScale);
   state.vy = state.vy * Math.max(0, 1 - resistanceY * frameScale) + gravity * frameScale;
+  if (
+    platform
+    && nextY >= previousY
+    && previousY <= platform.y
+    && nextY >= platform.y
+    && nextX >= platform.x
+    && nextX <= platform.x + platform.width
+  ) {
+    state.y = platform.y;
+    state.vy = 0;
+    return true;
+  }
   if (state.y >= bounds.y + bounds.height) { state.y = bounds.y + bounds.height; state.vy = 0; return true; }
   if (state.x <= bounds.x || state.x >= bounds.x + bounds.width) { state.vx = 0; return true; }
   return false;

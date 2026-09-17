@@ -1,5 +1,5 @@
 import type { CharacterSpec, ShimejiEngine, ShimejiEngineOptions, SpawnOptions } from "@react-shimeji/core";
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
 
 /** Value returned by {@link useShimeji}. */
 export interface UseShimejiResult {
@@ -25,6 +25,8 @@ export interface ShimejiContainerProps {
   enabled?: boolean;
   /** Options used when the engine is first mounted. */
   options?: ShimejiEngineOptions;
+  /** DOM element refs, or a selector, whose elements mascots can use as platforms. */
+  platforms?: readonly RefObject<HTMLElement>[] | string;
   /** Optional class applied to the full-viewport host. */
   className?: string;
   /** Optional style overrides for the host. */

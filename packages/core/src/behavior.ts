@@ -278,6 +278,16 @@ export class BehaviorController {
   private isOnAnyBoundary(environment: MascotEnvironment): boolean {
     const anchor = environment.mascot.anchor;
     const area = environment.mascot.environment.workArea;
-    return area.topBorder.isOn(anchor) || area.leftBorder.isOn(anchor) || area.rightBorder.isOn(anchor) || area.bottomBorder.isOn(anchor);
+    const activeIE = environment.mascot.environment.activeIE;
+    return area.topBorder.isOn(anchor)
+      || area.leftBorder.isOn(anchor)
+      || area.rightBorder.isOn(anchor)
+      || area.bottomBorder.isOn(anchor)
+      || (activeIE.visible && (
+        activeIE.topBorder.isOn(anchor)
+        || activeIE.leftBorder.isOn(anchor)
+        || activeIE.rightBorder.isOn(anchor)
+        || activeIE.bottomBorder.isOn(anchor)
+      ));
   }
 }

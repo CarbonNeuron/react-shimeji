@@ -51,7 +51,9 @@ function evaluateAction(definition: ActionDefinition, environment: MascotEnviron
   const initialVx = numeric(definition.initialVx, scopedEnvironment);
   let lookRight = environment.mascot.lookRight;
   if (definition.borderType === "Wall") {
-    lookRight = environment.mascot.environment.workArea.rightBorder.isOn(environment.mascot.anchor);
+    const { activeIE, workArea } = environment.mascot.environment;
+    lookRight = workArea.rightBorder.isOn(environment.mascot.anchor)
+      || (activeIE.visible && activeIE.leftBorder.isOn(environment.mascot.anchor));
   } else if (definition.type === "Move" || definition.embedType === "Jump" || definition.embedType === "WalkWithIE") {
     if (targetX !== undefined) lookRight = targetX > environment.mascot.anchor.x;
   } else if (definition.embedType === "Fall" || definition.embedType === "FallWithIE") {
@@ -173,7 +175,15 @@ class LeafRuntime implements Runtime {
   private tickEmbedded(frameScale: number, environment: MascotEnvironment, bounds: Rectangle): boolean {
     switch (this.action.definition.embedType) {
       case "Fall": case "FallWithIE": case "Thrown":
-        return applyGravity(this.state, bounds, frameScale, this.action.gravity ?? this.options.gravity, this.action.resistanceX, this.action.resistanceY);
+        return applyGravity(
+          this.state,
+          bounds,
+          frameScale,
+          this.action.gravity ?? this.options.gravity,
+          this.action.resistanceX,
+          this.action.resistanceY,
+          environment.mascot.environment.activeIE.visible ? environment.mascot.environment.activeIE : undefined,
+        );
       case "Jump": {
         const target = { x: this.action.targetX ?? this.state.x, y: this.action.targetY ?? this.state.y };
         return moveToward(this.state, target, this.action.velocity ?? 20, frameScale);
@@ -249,7 +259,8 @@ export class ActionExecutor {
   private createRuntime(definition: ActionDefinition, environment: MascotEnvironment, references: Set<string>): Runtime {
     if (definition.condition && !evaluateExpression(definition.condition, environment, false)) return new CompleteRuntime();
     const bounds = environment.mascot.environment.workArea;
-    if (!isOnBorder(this.state, bounds, definition.borderType)) return new CompleteRuntime();
+    const activeIE = environment.mascot.environment.activeIE;
+    if (!isOnBorder(this.state, bounds, definition.borderType, activeIE.visible ? activeIE : undefined)) return new CompleteRuntime();
     if (definition.type === "Reference") {
       if (!definition.name || references.has(definition.name)) return new CompleteRuntime();
       const referenced = this.spec.actions.find((action) => action.name === definition.name);

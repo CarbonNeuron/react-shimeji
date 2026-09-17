@@ -9,12 +9,26 @@ export function ShimejiContainer({
   randomize = true,
   enabled = true,
   options,
+  platforms,
   className,
   style,
 }: ShimejiContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const { engine } = useShimeji(containerRef, options);
   const characterIds = useMemo(() => characters.map((character) => character.id).join("\0"), [characters]);
+
+  useEffect(() => {
+    if (!engine) return;
+    if (typeof platforms === "string") {
+      engine.setPlatforms(platforms);
+      return;
+    }
+    if (platforms) {
+      engine.setPlatforms(platforms.flatMap((platform) => platform.current ? [platform.current] : []));
+      return;
+    }
+    engine.setPlatforms(options?.platforms ?? []);
+  }, [engine, options?.platforms, platforms]);
 
   useEffect(() => {
     if (!engine) return;

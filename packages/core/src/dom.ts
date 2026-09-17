@@ -40,7 +40,11 @@ export class DomManager {
 
   /** Returns the current local work-area rectangle. */
   public getBounds(): Rectangle {
-    const rectangle = this.workArea.getBoundingClientRect();
+    return this.getBoundsFromClientRectangle(this.workArea.getBoundingClientRect());
+  }
+
+  /** Converts a previously-read work-area client rectangle into local bounds. */
+  public getBoundsFromClientRectangle(rectangle: Pick<DOMRect, "width" | "height">): Rectangle {
     const width = rectangle.width || this.container.clientWidth || window.innerWidth;
     const height = rectangle.height || this.container.clientHeight || window.innerHeight;
     return { x: 0, y: 0, width, height };

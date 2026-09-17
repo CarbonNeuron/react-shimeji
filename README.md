@@ -83,6 +83,7 @@ const engine = new ShimejiEngine(container: HTMLElement, options?: ShimejiEngine
 | `removeAll()` | Remove all mascots |
 | `getState()` | Snapshot of all mascot states |
 | `getCharacterIds()` | List of registered character IDs |
+| `setPlatforms(elementsOrSelector)` | Replace the DOM elements exposed as interactive platforms |
 | `on(event, listener)` | Subscribe to events (`"click"`, `"spawn"`, `"remove"`, `"error"`). Returns an unsubscribe function |
 | `destroy()` | Tear down everything — cancels RAF, clears intervals, removes listeners, revokes blob URLs, removes DOM |
 | `isDestroyed()` | Whether `destroy()` has been called |
@@ -96,6 +97,7 @@ interface ShimejiEngineOptions {
   maxDeltaTime?: number;       // Frame delta clamp in ms (default: 100)
   workAreaClassName?: string;  // CSS class for the work area overlay
   mascotClassName?: string;    // CSS class for individual mascot elements
+  platforms?: string | readonly HTMLElement[]; // Interactive DOM platforms
   random?: () => number;       // Custom RNG for deterministic behavior selection
 }
 ```
@@ -124,6 +126,7 @@ Declarative full-viewport overlay that reconciles mascot count with React props.
   count={15}           // number of mascots (default: 1)
   randomize            // random vs round-robin character selection (default: true)
   enabled              // toggle spawning on/off (default: true)
+  platforms=".ledge"  // selector or React.RefObject<HTMLElement>[]
   options={...}        // ShimejiEngineOptions passed to the engine
   className="my-class" // applied to the host div
   style={{ ... }}      // style overrides for the host div
