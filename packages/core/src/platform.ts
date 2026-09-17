@@ -5,26 +5,31 @@ export interface PlatformRectangle extends Rectangle {
   element: HTMLElement;
 }
 
-/** Resolves a platform option into DOM elements, excluding engine-owned nodes. */
+/** Resolves a platform option into connected DOM elements contained by the supplied root. */
 export function resolvePlatformElements(
   source: string | readonly HTMLElement[],
-  document: Document,
+  root: Document | HTMLElement,
   excludedRoot?: HTMLElement,
 ): HTMLElement[] {
   let elements: readonly Element[];
   if (typeof source === "string") {
     try {
-      elements = [...document.querySelectorAll(source)];
+      elements = [...root.querySelectorAll(source)];
     } catch {
       return [];
     }
   } else {
     elements = source;
   }
+  const document = root.nodeType === 9 ? root as Document : root.ownerDocument;
+  if (!document) return [];
   const HTMLElementConstructor = document.defaultView?.HTMLElement;
   if (!HTMLElementConstructor) return [];
   return [...new Set(elements)].filter((element): element is HTMLElement =>
-    element instanceof HTMLElementConstructor && element.isConnected && (!excludedRoot || !excludedRoot.contains(element)),
+    element instanceof HTMLElementConstructor
+      && element.isConnected
+      && root.contains(element)
+      && (!excludedRoot || !excludedRoot.contains(element)),
   );
 }
 

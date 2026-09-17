@@ -1,6 +1,6 @@
 {
   "name": "@react-shimeji/react",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "React bindings for @react-shimeji/core",
   "license": "MIT",
   "type": "module",
@@ -15,6 +15,6 @@
     "clean": "rm -rf dist",
     "typecheck": "npm run build -w @react-shimeji/core --silent && tsc --noEmit"
   },
-  "dependencies": { "@react-shimeji/core": "^0.2.3" },
+  "dependencies": { "@react-shimeji/core": "^0.3.0" },
   "peerDependencies": { "react": ">=18" }
 }

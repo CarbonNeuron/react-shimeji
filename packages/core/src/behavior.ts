@@ -35,8 +35,10 @@ function normalizeExpression(source: string): string {
     .replace(/TargetY|目的地Y/gi, "targetY")
     .replace(/FootX|足X/gi, "footX")
     .replace(/FootY|足Y/gi, "footY")
+    .replace(/VelocityX|速度X/gi, "velocityX")
+    .replace(/VelocityY|速度Y/gi, "velocityY")
     .replace(/MaxCount/gi, "maxCount")
-    .replace(/Gap/gi, "gap")
+    .replace(/Gap|ずれ/gi, "gap")
     .replace(/\band\b/gi, "&&")
     .replace(/\bor\b/gi, "||")
     .replace(/\bnot\b/gi, "!");
@@ -196,18 +198,18 @@ function evaluateNode(node: AstNode, scope: Record<string, unknown>): unknown {
 const expressionCache = new Map<string, AstNode>();
 
 /** Safely evaluates a legacy Shimeji expression without using `eval` or `Function`. */
-export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: number): number;
+export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: number, random?: () => number): number;
 /** Safely evaluates a legacy Shimeji expression without using `eval` or `Function`. */
-export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: boolean): boolean;
+export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: boolean, random?: () => number): boolean;
 /** Safely evaluates a legacy Shimeji expression without using `eval` or `Function`. */
-export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: number | boolean): number | boolean {
+export function evaluateExpression(expression: string | number | boolean | undefined, environment: MascotEnvironment, fallback: number | boolean, random: () => number = Math.random): number | boolean {
   if (expression === undefined) return fallback;
   if (typeof expression !== "string") return expression;
   try {
     const normalized = normalizeExpression(expression);
     let ast = expressionCache.get(normalized);
     if (!ast) { ast = new Parser(tokenize(normalized)).parse(); expressionCache.set(normalized, ast); }
-    const result = evaluateNode(ast, environment as unknown as Record<string, unknown>);
+    const result = evaluateNode(ast, { ...environment, random: (maximum = 1) => random() * Number(maximum) } as unknown as Record<string, unknown>);
     if (typeof fallback === "boolean") return Boolean(result);
     const numericResult = Number(result);
     return Number.isNaN(numericResult) ? fallback : numericResult;
@@ -215,8 +217,8 @@ export function evaluateExpression(expression: string | number | boolean | undef
 }
 
 /** Returns true when every condition in a behavior or action is satisfied. */
-export function conditionsMatch(conditions: readonly string[], environment: MascotEnvironment): boolean {
-  return conditions.every((condition) => evaluateExpression(condition, environment, false));
+export function conditionsMatch(conditions: readonly string[], environment: MascotEnvironment, random: () => number = Math.random): boolean {
+  return conditions.every((condition) => evaluateExpression(condition, environment, false, random));
 }
 
 /** Chooses one item with probability proportional to its non-negative weight. */
@@ -232,35 +234,42 @@ export function selectWeighted<T>(items: readonly T[], weight: (item: T) => numb
 /** Selects applicable behaviors and resolves legacy behavior references. */
 export class BehaviorController {
   private previous: BehaviorDefinition | undefined;
+  private fallbackSelected = false;
 
   /** Creates a behavior selector for a normalized character specification. */
   public constructor(private readonly spec: CharacterSpec, private readonly random: () => number = Math.random) {}
 
   /** Selects an initial behavior, honoring an explicit requested name when possible. */
   public selectInitial(environment: MascotEnvironment, requestedName?: string): BehaviorDefinition | undefined {
+    this.fallbackSelected = false;
     if (requestedName) {
       const requested = this.spec.behaviors.find((behavior) => behavior.name === requestedName);
-      if (requested && conditionsMatch(requested.conditions, environment)) return (this.previous = this.resolve(requested));
+      if (requested) return (this.previous = this.resolve(requested));
     }
-    const fall = this.findFallBehavior();
-    if (fall && !this.isOnAnyBoundary(environment)) return (this.previous = fall);
     return (this.previous = this.choose(this.spec.behaviors, environment));
   }
 
   /** Selects the weighted transition following the current behavior. */
   public selectNext(environment: MascotEnvironment): BehaviorDefinition | undefined {
-    const pool = this.previous?.nextBehaviors.length ? this.previous.nextBehaviors : this.spec.behaviors;
-    return (this.previous = this.choose(pool, environment) ?? this.findFallBehavior());
+    const next = this.previous?.nextBehaviors ?? [];
+    const pool = this.previous && this.previous.nextAdditive === false ? next : [...this.spec.behaviors, ...next];
+    const selected = this.choose(pool, environment);
+    this.fallbackSelected = selected === undefined;
+    return (this.previous = selected ?? this.findFallBehavior());
   }
+
+  /** Whether the most recent transition had no effective weighted candidate. */
+  public usedFallback(): boolean { return this.fallbackSelected; }
 
   /** Replaces selection history so an external interaction can force a behavior. */
   public force(name: string): BehaviorDefinition | undefined {
+    this.fallbackSelected = false;
     const behavior = this.spec.behaviors.find((candidate) => candidate.name === name);
     return (this.previous = behavior ? this.resolve(behavior) : undefined);
   }
 
   private choose(pool: readonly BehaviorDefinition[], environment: MascotEnvironment): BehaviorDefinition | undefined {
-    const applicable = pool.filter((behavior) => conditionsMatch(behavior.conditions, environment));
+    const applicable = pool.filter((behavior) => conditionsMatch(behavior.conditions, environment, this.random));
     const chosen = selectWeighted(applicable, (behavior) => behavior.frequency, this.random);
     return chosen ? this.resolve(chosen) : undefined;
   }
@@ -268,26 +277,20 @@ export class BehaviorController {
   private resolve(behavior: BehaviorDefinition): BehaviorDefinition {
     if (behavior.type !== "Reference") return behavior;
     const target = this.spec.behaviors.find((candidate) => candidate.type === "Behavior" && candidate.name === behavior.name);
-    return target ? { ...target, ...behavior, type: "Behavior", nextBehaviors: target.nextBehaviors } : { ...behavior, type: "Behavior" };
+    return target ? {
+      ...target,
+      ...behavior,
+      type: "Behavior",
+      nextBehaviors: target.nextBehaviors,
+      ...(behavior.actionName !== undefined
+        ? { actionName: behavior.actionName }
+        : target.actionName !== undefined ? { actionName: target.actionName } : {}),
+      ...(target.nextAdditive !== undefined && { nextAdditive: target.nextAdditive }),
+    } : { ...behavior, type: "Behavior" };
   }
 
   private findFallBehavior(): BehaviorDefinition | undefined {
     return this.spec.behaviors.find((behavior) => behavior.name === "Fall" || behavior.name === "落下する");
   }
 
-  private isOnAnyBoundary(environment: MascotEnvironment): boolean {
-    const anchor = environment.mascot.anchor;
-    const area = environment.mascot.environment.workArea;
-    const activeIE = environment.mascot.environment.activeIE;
-    return area.topBorder.isOn(anchor)
-      || area.leftBorder.isOn(anchor)
-      || area.rightBorder.isOn(anchor)
-      || area.bottomBorder.isOn(anchor)
-      || (activeIE.visible && (
-        activeIE.topBorder.isOn(anchor)
-        || activeIE.leftBorder.isOn(anchor)
-        || activeIE.rightBorder.isOn(anchor)
-        || activeIE.bottomBorder.isOn(anchor)
-      ));
-  }
 }

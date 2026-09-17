@@ -2,8 +2,9 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CharacterSpec } from "@react-shimeji/core";
+import { ShimejiEngine, type CharacterSpec } from "@react-shimeji/core";
 import { ShimejiContainer } from "./ShimejiContainer";
+import { useShimejiPlatform } from "./ShimejiPlatformContext";
 
 const character: CharacterSpec = {
   id: "react-test",
@@ -28,21 +29,20 @@ describe("ShimejiContainer", () => {
   afterEach(() => {
     act(() => root.unmount());
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     document.body.replaceChildren();
   });
 
   it("preserves mascots across rerenders and cleans up on unmount", () => {
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} />));
-    const anchor = host.firstElementChild as HTMLElement;
-    // Mascots are appended to document.body (not the container) so position:fixed always works
-    const ids = Array.from(document.body.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"));
+    const container = host.firstElementChild as HTMLElement;
+    const ids = Array.from(container.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"));
     expect(ids).toHaveLength(2);
-    expect(anchor.style.position).toBe("");
-    expect(anchor.style.inset).toBe("");
-    expect(anchor.style.width).toBe("");
-    expect(anchor.style.height).toBe("");
-    expect(document.body.querySelector<HTMLElement>("[data-shimeji-id]")?.style.position).toBe("fixed");
+    expect(container.style.position).toBe("relative");
+    expect(container.style.overflowX).toBe("clip");
+    expect(container.querySelector<HTMLElement>("[data-shimeji-id]")?.style.position).toBe("absolute");
+    expect(container.querySelector<HTMLElement>("[data-shimeji-id]")?.parentElement).toBe(container);
     expect(document.body.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} className="updated" />));
     expect(Array.from(document.body.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"))).toEqual(ids);
@@ -50,5 +50,25 @@ describe("ShimejiContainer", () => {
     expect(document.body.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     expect(cancelAnimationFrame).toHaveBeenCalledWith(11);
     root = createRoot(host);
+  });
+
+  it("renders children and adds hook-registered platforms to the engine", () => {
+    const setPlatforms = vi.spyOn(ShimejiEngine.prototype, "setPlatforms");
+    function Platform() {
+      const platformRef = useShimejiPlatform<HTMLDivElement>();
+      return <div ref={platformRef} data-testid="platform">ledge</div>;
+    }
+
+    act(() => root.render(
+      <ShimejiContainer characters={[character]} count={0} platforms=".legacy-platform">
+        <Platform />
+      </ShimejiContainer>,
+    ));
+
+    const platform = host.querySelector<HTMLElement>("[data-testid='platform']")!;
+    expect(platform.textContent).toBe("ledge");
+    expect(setPlatforms.mock.calls.some(([source, additional]) =>
+      source === ".legacy-platform" && additional?.includes(platform),
+    )).toBe(true);
   });
 });

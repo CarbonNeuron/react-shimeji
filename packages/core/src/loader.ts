@@ -14,6 +14,7 @@ import type {
 
 const actionTypeNames: Record<string, ActionType> = {
   Sequence: "Sequence", Select: "Select", Reference: "Reference", Stay: "Stay", Animate: "Animate", Move: "Move", Embedded: "Embedded",
+  Composite: "Sequence", Fixed: "Animate", Pause: "Stay",
   複合: "Sequence", 選択: "Select", 参照: "Reference", 静止: "Stay", 固定: "Animate", 移動: "Move", 組み込み: "Embedded",
 };
 const borderTypeNames: Record<string, BorderType> = { Floor: "Floor", Wall: "Wall", Ceiling: "Ceiling", 地面: "Floor", 壁: "Wall", 天井: "Ceiling" };
@@ -56,12 +57,13 @@ function actionProperty(element: Element, ...names: string[]): string | undefine
 function parseAnimation(element: Element): AnimationDefinition {
   const poses = directChildren(element, "Pose", "ポーズ").map((pose): Pose => ({
     sprite: attribute(pose, "Image", "画像") ?? "/shime1.png",
-    anchor: parsePoint(attribute(pose, "Anchor", "基準座標"), { x: 64, y: 128 }),
+    anchor: parsePoint(attribute(pose, "ImageAnchor", "Anchor", "基準座標"), { x: 64, y: 128 }),
     velocity: parsePoint(attribute(pose, "Velocity", "移動速度")),
     duration: Number(attribute(pose, "Duration", "長さ") ?? 1),
   }));
   const condition = attribute(element, "Condition", "条件");
-  return { poses, ...(condition !== undefined && { condition }) };
+  const turn = (attribute(element, "IsTurn", "Turn") ?? "false").toLowerCase() === "true";
+  return { poses, ...(condition !== undefined && { condition }), ...(turn && { turn }) };
 }
 
 function parseActionElement(element: Element): ActionDefinition {
@@ -85,13 +87,17 @@ function parseActionElement(element: Element): ActionDefinition {
     ...(animations.length > 0 && { animations }),
   };
   const properties: Array<[keyof ActionDefinition, string | undefined]> = [
-    ["duration", actionProperty(element, "Duration", "長さ")], ["gap", actionProperty(element, "Gap", "間隔")], ["targetX", actionProperty(element, "TargetX", "目的地X")],
-    ["targetY", actionProperty(element, "TargetY", "目的地Y")], ["velocity", actionProperty(element, "Velocity", "速度")],
+    ["duration", actionProperty(element, "Duration", "長さ")], ["gap", actionProperty(element, "Gap", "間隔", "ずれ")], ["targetX", actionProperty(element, "TargetX", "目的地X")],
+    ["targetY", actionProperty(element, "TargetY", "目的地Y")], ["velocity", actionProperty(element, "VelocityParam", "Velocity", "速度")],
     ["x", actionProperty(element, "X", "変位X")], ["y", actionProperty(element, "Y", "変位Y")],
+    ["offsetX", actionProperty(element, "OffsetX", "端X")], ["offsetY", actionProperty(element, "OffsetY", "端Y")],
+    ["offsetType", actionProperty(element, "OffsetType")],
     ["initialVx", actionProperty(element, "InitialVX", "InitialVx", "初速X")], ["initialVy", actionProperty(element, "InitialVY", "InitialVy", "初速Y")],
-    ["resistanceX", actionProperty(element, "ResistanceX", "空気抵抗X")], ["resistanceY", actionProperty(element, "ResistanceY", "空気抵抗Y")],
-    ["gravity", actionProperty(element, "Gravity", "重力")], ["bornX", actionProperty(element, "BornX", "誕生X")],
-    ["bornY", actionProperty(element, "BornY", "誕生Y")], ["bornBehavior", actionProperty(element, "BornBehavior", "誕生時の行動")],
+    ["resistanceX", actionProperty(element, "RegistanceX", "ResistanceX", "空気抵抗X")], ["resistanceY", actionProperty(element, "RegistanceY", "ResistanceY", "空気抵抗Y")],
+    ["gravity", actionProperty(element, "Gravity", "重力")], ["bornX", actionProperty(element, "BornX", "誕生X", "生まれる場所X")],
+    ["bornY", actionProperty(element, "BornY", "誕生Y", "生まれる場所Y")], ["bornBehavior", actionProperty(element, "BornBehavior", "BornBehaviour", "誕生時の行動", "生まれた時の行動")],
+    ["bornMascot", actionProperty(element, "BornMascot")], ["bornCount", actionProperty(element, "BornCount")],
+    ["bornInterval", actionProperty(element, "BornInterval")],
     ["ieOffsetX", actionProperty(element, "IEOffsetX", "IEの端X")], ["ieOffsetY", actionProperty(element, "IEOffsetY", "IEの端Y")],
     ["lookRight", actionProperty(element, "LookRight", "右向き")],
   ];
@@ -109,20 +115,34 @@ export function parseActionsXml(xml: string): ActionDefinition[] {
   return roots.flatMap((list) => directChildren(list, "Action", "動作").map(parseActionElement));
 }
 
+function parseNextBehaviors(element: Element, inheritedConditions: readonly string[]): BehaviorDefinition[] {
+  const behaviors: BehaviorDefinition[] = [];
+  for (const child of Array.from(element.children)) {
+    if (child.localName === "Condition" || child.localName === "条件") {
+      const condition = attribute(child, "Condition", "条件");
+      behaviors.push(...parseNextBehaviors(child, [...inheritedConditions, ...(condition ? [condition] : [])]));
+    } else if (["Behavior", "行動", "BehaviorReference", "BehaviorReferance", "行動参照"].includes(child.localName)) {
+      behaviors.push(parseBehaviorElement(child, inheritedConditions, 0));
+    }
+  }
+  return behaviors;
+}
+
 function parseBehaviorElement(element: Element, inheritedConditions: readonly string[], groupIndex: number): BehaviorDefinition {
   const condition = attribute(element, "Condition", "条件");
   const conditions = [...inheritedConditions, ...(condition ? [condition] : [])];
   const nextList = directChildren(element, "NextBehaviorList", "NextBehavior", "次の行動リスト")[0];
-  const nextBehaviors = nextList
-    ? directChildren(nextList, "Behavior", "行動", "BehaviorReference", "BehaviorReferance", "行動参照").map((child) => parseBehaviorElement(child, conditions, 0))
-    : [];
+  const nextBehaviors = nextList ? parseNextBehaviors(nextList, []) : [];
   const reference = element.localName === "BehaviorReference" || element.localName === "BehaviorReferance" || element.localName === "行動参照";
+  const actionName = attribute(element, "Action", "動作");
   return {
     type: reference ? "Reference" : "Behavior",
     name: attribute(element, "Name", "名前") ?? "",
     frequency: Number(attribute(element, "Frequency", "頻度") ?? 0),
     conditions,
     nextBehaviors,
+    ...(nextList && { nextAdditive: (attribute(nextList, "Add", "追加") ?? "true").toLowerCase() === "true" }),
+    ...(actionName !== undefined && { actionName }),
     groupIndex,
     hidden: (attribute(element, "Hidden", "非表示") ?? "false").toLowerCase() === "true",
   };

@@ -1,27 +1,33 @@
 import type { MascotState, Point, Rectangle } from "./types";
 
+// Mascot anchors and evaluated action targets use truncated legacy pixels,
+// while DOMRect edges may lie anywhere between CSS pixels. A tolerance just
+// below one pixel bridges that quantization gap without claiming the adjacent
+// pixel of an integer-aligned border.
+const BORDER_TOLERANCE = 0.999999;
+
 /** Clamps a number to an inclusive range. */
 export function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
 /** Returns whether a point lies on the top edge of a rectangle. */
-export function isOnTop(point: Point, rectangle: Rectangle, tolerance = 1): boolean {
+export function isOnTop(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
   return point.x >= rectangle.x - tolerance && point.x <= rectangle.x + rectangle.width + tolerance && Math.abs(point.y - rectangle.y) <= tolerance;
 }
 
 /** Returns whether a point lies on the bottom edge of a rectangle. */
-export function isOnBottom(point: Point, rectangle: Rectangle, tolerance = 1): boolean {
+export function isOnBottom(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
   return point.x >= rectangle.x - tolerance && point.x <= rectangle.x + rectangle.width + tolerance && Math.abs(point.y - rectangle.y - rectangle.height) <= tolerance;
 }
 
 /** Returns whether a point lies on the left edge of a rectangle. */
-export function isOnLeft(point: Point, rectangle: Rectangle, tolerance = 1): boolean {
+export function isOnLeft(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
   return point.y >= rectangle.y - tolerance && point.y <= rectangle.y + rectangle.height + tolerance && Math.abs(point.x - rectangle.x) <= tolerance;
 }
 
 /** Returns whether a point lies on the right edge of a rectangle. */
-export function isOnRight(point: Point, rectangle: Rectangle, tolerance = 1): boolean {
+export function isOnRight(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
   return point.y >= rectangle.y - tolerance && point.y <= rectangle.y + rectangle.height + tolerance && Math.abs(point.x - rectangle.x - rectangle.width) <= tolerance;
 }
 
@@ -40,38 +46,58 @@ export function isOnBorder(
     || (platform !== undefined && (isOnLeft(state, platform) || isOnRight(state, platform)));
 }
 
-/** Advances ballistic motion and clamps the mascot to the work-area boundaries. */
+/** Returns whether a point is on a floor (platform top or work-area bottom). */
+export function isOnFloor(point: Point, bounds: Rectangle, platforms: readonly Rectangle[] = []): boolean {
+  return platforms.some((platform) => isOnTop(point, platform)) || isOnBottom(point, bounds);
+}
+
+/** Returns whether a point is on the wall it is moving/facing toward. */
+export function isOnWall(point: Point, bounds: Rectangle, lookRight: boolean, platforms: readonly Rectangle[] = []): boolean {
+  return lookRight
+    ? platforms.some((platform) => isOnLeft(point, platform)) || isOnRight(point, bounds)
+    : platforms.some((platform) => isOnRight(point, platform)) || isOnLeft(point, bounds);
+}
+
+/**
+ * Advances one legacy Fall tick. Velocity is damped and accelerated before
+ * movement, then the path is sampled one pixel at a time just like Shimeji-ee.
+ */
 export function applyGravity(
   state: MascotState,
   bounds: Rectangle,
   frameScale: number,
   gravity: number,
   resistanceX = 0.05,
-  resistanceY = 0.01,
+  resistanceY = 0.1,
   platform?: Rectangle,
 ): boolean {
-  const previousY = state.y;
-  const nextX = clamp(state.x + state.vx * frameScale, bounds.x, bounds.x + bounds.width);
-  const nextY = clamp(state.y + state.vy * frameScale, bounds.y, bounds.y + bounds.height);
-  state.x = nextX;
-  state.y = nextY;
-  state.vx *= Math.max(0, 1 - resistanceX * frameScale);
-  state.vy = state.vy * Math.max(0, 1 - resistanceY * frameScale) + gravity * frameScale;
-  if (
-    platform
-    && nextY >= previousY
-    && previousY <= platform.y
-    && nextY >= platform.y
-    && nextX >= platform.x
-    && nextX <= platform.x + platform.width
-  ) {
-    state.y = platform.y;
-    state.vy = 0;
-    return true;
+  const platforms = platform ? [platform] : [];
+  const steps = Math.max(1, Math.round(frameScale));
+  let stopped = false;
+  for (let frame = 0; frame < steps && !stopped; frame += 1) {
+    state.vx -= state.vx * resistanceX;
+    state.vy = state.vy - state.vy * resistanceY + gravity;
+    const dx = Math.trunc(state.vx);
+    const dy = Math.trunc(state.vy);
+    const divisions = Math.max(1, Math.abs(dx), Math.abs(dy));
+    const start = { x: state.x, y: state.y };
+    for (let index = 0; index <= divisions; index += 1) {
+      const x = start.x + Math.trunc((dx * index) / divisions);
+      const y = start.y + Math.trunc((dy * index) / divisions);
+      state.x = x;
+      state.y = y;
+      if (dy > 0) {
+        for (let offset = -80; offset <= 0; offset += 1) {
+          state.y = y + offset;
+          if (isOnFloor(state, bounds, platforms)) { stopped = true; break; }
+        }
+        if (stopped) break;
+        state.y = y;
+      }
+      if (isOnWall(state, bounds, state.lookRight, platforms)) { stopped = true; break; }
+    }
   }
-  if (state.y >= bounds.y + bounds.height) { state.y = bounds.y + bounds.height; state.vy = 0; return true; }
-  if (state.x <= bounds.x || state.x >= bounds.x + bounds.width) { state.vx = 0; return true; }
-  return false;
+  return stopped;
 }
 
 /** Moves a mascot toward a target without overshooting it. */

@@ -34,4 +34,19 @@ describe("DOM platform geometry", () => {
     expect(getBoundingClientRect).toHaveBeenCalledOnce();
     platform.remove();
   });
+
+  it("limits selector matches and element references to a container", () => {
+    const container = document.createElement("div");
+    const inside = document.createElement("div");
+    const outside = document.createElement("div");
+    inside.className = outside.className = "platform";
+    container.append(inside);
+    document.body.append(container, outside);
+
+    expect(resolvePlatformElements(".platform", container)).toEqual([inside]);
+    expect(resolvePlatformElements([inside, outside], container)).toEqual([inside]);
+
+    container.remove();
+    outside.remove();
+  });
 });

@@ -1,7 +1,7 @@
 import { ActionExecutor } from "./action";
 import { BehaviorController } from "./behavior";
 import type { DomManager, MascotDomHandle } from "./dom";
-import { isOnBottom, isOnLeft, isOnRight, isOnTop } from "./physics";
+import { isOnBottom, isOnFloor, isOnLeft, isOnRight, isOnTop } from "./physics";
 import type { PlatformRectangle } from "./platform";
 import type { BehaviorDefinition, CharacterSpec, EnvironmentEdge, EnvironmentRectangle, MascotEnvironment, MascotState, Point, Rectangle, ShimejiEngineOptions, SpawnOptions } from "./types";
 
@@ -15,6 +15,8 @@ export interface MascotCallbacks {
   spawn(characterId: string, options: SpawnOptions): void;
   /** Requests removal of this mascot. */
   remove(id: string): void;
+  /** Moves a registered platform for legacy IE interaction actions. */
+  movePlatform?(element: HTMLElement, point: Point): void;
   /** Reports a click without a drag gesture. */
   click(state: MascotState): void;
   /** Reports a recoverable runtime failure. */
@@ -39,8 +41,6 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
 }
 
 const PLATFORM_NEARBY_DISTANCE = 400;
-const PLATFORM_EDGE_TOLERANCE = 16;
-
 function distanceToRectangle(point: Point, rectangle: Rectangle): number {
   const dx = Math.max(rectangle.x - point.x, 0, point.x - rectangle.x - rectangle.width);
   const dy = Math.max(rectangle.y - point.y, 0, point.y - rectangle.y - rectangle.height);
@@ -63,6 +63,9 @@ export class Mascot {
   private lastPointer: Point | undefined;
   private activePlatformElement: HTMLElement | undefined;
   private platforms: readonly PlatformRectangle[] = [];
+  private accumulatedMs = 0;
+  private readonly frameDuration: number;
+  private readonly random: () => number;
 
   /** Creates a mascot and immediately installs its pointer handlers. */
   public constructor(
@@ -89,10 +92,13 @@ export class Mascot {
       dragging: false,
     };
     this.domHandle = dom.createMascot(spec, id, options.mascotClassName || undefined);
+    this.frameDuration = options.frameDuration;
+    this.random = options.random ?? Math.random;
     this.behavior = new BehaviorController(spec, options.random);
     this.actions = new ActionExecutor(spec, this.state, options, {
-      spawn: (position) => this.callbacks.spawn(this.spec.id, position),
+      spawn: (position, characterId) => this.callbacks.spawn(characterId ?? this.spec.id, position),
       remove: () => this.callbacks.remove(this.id),
+      ...(this.callbacks.movePlatform && { movePlatform: this.callbacks.movePlatform }),
     });
     this.installPointerHandlers();
   }
@@ -101,40 +107,12 @@ export class Mascot {
   public tick(deltaMs: number, bounds: Rectangle, platforms: readonly PlatformRectangle[] = []): void {
     if (this.destroyed) return;
     this.platforms = platforms;
-    const environment = this.createEnvironment(bounds, platforms);
-    if (this.state.dragging) { this.dom.render(this.domHandle, this.spec, this.state); return; }
     try {
-      for (let guard = 0; guard < 8; guard += 1) {
-        if (!this.currentBehavior) {
-          this.currentBehavior = this.behavior.selectInitial(environment, this.state.behaviorName);
-          let started = this.startBehavior(environment);
-          if (!started) {
-            this.currentBehavior = this.findFallBehavior();
-            started = this.startBehavior(environment);
-          }
-          if (!started) break;
-        }
-        const activeIE = environment.mascot.environment.activeIE;
-        const wasOnPlatformTop = activeIE.visible && activeIE.topBorder.isOn(this.state);
-        const completed = this.actions.tick(deltaMs, environment, bounds);
-        const remainedNearPlatform = this.state.x >= activeIE.left - PLATFORM_EDGE_TOLERANCE
-          && this.state.x <= activeIE.right + PLATFORM_EDGE_TOLERANCE;
-        if (wasOnPlatformTop
-          && !remainedNearPlatform
-          && !platforms.some((platform) => isOnTop(this.state, platform))) {
-          this.actions.cancel();
-          this.currentBehavior = this.findFallBehavior();
-          if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms));
-          break;
-        }
-        if (!completed) break;
-        if (this.destroyed) return;
-        this.currentBehavior = this.behavior.selectNext(this.createEnvironment(bounds, platforms));
-        if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds, platforms))) {
-          this.currentBehavior = this.findFallBehavior();
-          if (!this.currentBehavior || !this.startBehavior(this.createEnvironment(bounds, platforms))) break;
-        }
-        deltaMs = 0;
+      this.ensureBehavior(bounds, platforms, true);
+      this.accumulatedMs += Math.max(0, deltaMs);
+      while (this.accumulatedMs >= this.frameDuration && !this.destroyed) {
+        this.accumulatedMs -= this.frameDuration;
+        this.legacyTick(bounds, platforms);
       }
     } catch (error) {
       this.callbacks.error(error instanceof Error ? error : new Error(String(error)));
@@ -156,14 +134,74 @@ export class Mascot {
     this.dom.removeMascot(this.domHandle);
   }
 
-  private startBehavior(environment: MascotEnvironment): boolean {
+  private startBehavior(environment: MascotEnvironment, bounds: Rectangle, platforms: readonly PlatformRectangle[]): boolean {
     if (!this.currentBehavior) return false;
     this.state.behaviorName = this.currentBehavior.name;
-    return this.actions.start(this.currentBehavior.name, environment);
+    return this.actions.start(this.currentBehavior.actionName ?? this.currentBehavior.name, environment, false, bounds, platforms);
+  }
+
+  private ensureBehavior(bounds: Rectangle, platforms: readonly PlatformRectangle[], initial: boolean): void {
+    for (let guard = 0; guard < 32 && !this.destroyed; guard += 1) {
+      const environment = this.createEnvironment(bounds, platforms);
+      if (!this.currentBehavior) {
+        this.currentBehavior = initial
+          ? this.behavior.selectInitial(environment, this.state.behaviorName)
+          : this.selectNextBehavior(environment, bounds);
+        initial = false;
+        if (!this.currentBehavior) this.currentBehavior = this.findFallBehavior();
+        if (!this.currentBehavior || !this.startBehavior(environment, bounds, platforms)) return;
+      }
+      if (this.actions.hasNext(environment, bounds, platforms)) return;
+      this.currentBehavior = this.selectNextBehavior(environment, bounds) ?? this.findFallBehavior();
+      if (!this.currentBehavior) return;
+      if (!this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms)) return;
+    }
+  }
+
+  private legacyTick(bounds: Rectangle, platforms: readonly PlatformRectangle[]): void {
+    this.ensureBehavior(bounds, platforms, false);
+    if (!this.currentBehavior) return;
+    const result = this.actions.step(this.createEnvironment(bounds, platforms), bounds, platforms);
+    if (this.destroyed) return;
+    if (result === "lost-ground") {
+      this.state.dragging = false;
+      this.actions.cancel();
+      this.currentBehavior = this.findFallBehavior();
+      if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms);
+    } else if (result === "complete") {
+      this.currentBehavior = this.selectNextBehavior(this.createEnvironment(bounds, platforms), bounds);
+      if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms);
+      this.ensureBehavior(bounds, platforms, false);
+    } else if (this.isOutsideVisibleBounds(bounds)) {
+      this.state.x = Math.trunc(bounds.x + this.random() * bounds.width);
+      this.state.y = bounds.y - 256;
+      this.actions.cancel();
+      this.currentBehavior = this.findFallBehavior();
+      if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms);
+    }
+  }
+
+  private isOutsideVisibleBounds(bounds: Rectangle): boolean {
+    const sprite = this.spec.sprites[this.state.sprite];
+    const width = typeof sprite === "object" && "width" in sprite && sprite.width !== undefined ? sprite.width : 128;
+    const height = typeof sprite === "object" && "height" in sprite && sprite.height !== undefined ? sprite.height : 128;
+    const anchorX = this.state.lookRight ? width - this.state.anchorX : this.state.anchorX;
+    const left = this.state.x - anchorX;
+    const top = this.state.y - this.state.anchorY;
+    return left + width <= bounds.x || bounds.x + bounds.width <= left || bounds.y + bounds.height <= top;
   }
 
   private findFallBehavior(): BehaviorDefinition | undefined {
     return this.behavior.force("Fall") ?? this.behavior.force("落下する");
+  }
+
+  private selectNextBehavior(environment: MascotEnvironment, bounds: Rectangle): BehaviorDefinition | undefined {
+    const selected = this.behavior.selectNext(environment);
+    if (this.behavior.usedFallback()) {
+      this.state.x = Math.trunc(bounds.x + this.random() * bounds.width);
+      this.state.y = bounds.y - 256;
+    }
+    return selected;
   }
 
   private createEnvironment(bounds: Rectangle, platforms: readonly PlatformRectangle[] = this.platforms): MascotEnvironment {
@@ -182,10 +220,10 @@ export class Mascot {
         lookRight: this.state.lookRight,
         environment: {
           cursor: this.callbacks.pointer(),
-          screen: { width: window.innerWidth, height: window.innerHeight },
+          screen: workArea,
           workArea,
-          floor: workArea.bottomBorder,
-          ceiling: workArea.topBorder,
+          floor: edge((point) => isOnFloor(point, bounds, platforms)),
+          ceiling: edge((point) => isOnTop(point, bounds) || platforms.some((candidate) => isOnBottom(point, candidate))),
           activeIE,
         },
       },
@@ -226,6 +264,7 @@ export class Mascot {
 
   private installPointerHandlers(): void {
     const element = this.domHandle.spriteElement;
+    const document = element.ownerDocument;
     const listen = <K extends keyof HTMLElementEventMap>(target: EventTarget, type: K, listener: (event: HTMLElementEventMap[K]) => void): void => {
       target.addEventListener(type, listener as EventListener);
       this.disposers.push(() => target.removeEventListener(type, listener as EventListener));
@@ -234,22 +273,22 @@ export class Mascot {
       const pointerEvent = event as PointerEvent;
       if (pointerEvent.button !== 0) return;
       event.preventDefault();
-      const point = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+      const point = this.dom.toLocalPoint(pointerEvent.clientX, pointerEvent.clientY);
       this.pointerId = pointerEvent.pointerId;
       this.pointerDown = point;
       this.lastPointer = point;
       this.dragOffset = { x: this.state.x - point.x, y: this.state.y - point.y };
       this.state.dragging = true;
-      this.actions.cancel();
       this.currentBehavior = this.behavior.force("Dragged") ?? this.behavior.force("ドラッグされる");
-      if (this.currentBehavior) this.state.behaviorName = this.currentBehavior.name;
+      if (this.currentBehavior) this.startBehavior(this.createEnvironment(this.dom.getBounds()), this.dom.getBounds(), this.platforms);
       element.setPointerCapture?.(pointerEvent.pointerId);
     });
     listen(document, "pointermove", (event) => {
       const pointerEvent = event as PointerEvent;
       if (!this.state.dragging || pointerEvent.pointerId !== this.pointerId) return;
-      const point = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+      const point = this.dom.toLocalPoint(pointerEvent.clientX, pointerEvent.clientY);
       const previous = this.lastPointer ?? point;
+      const bounds = this.dom.getBounds();
       this.state.vx = (point.x - previous.x) * 0.8;
       this.state.vy = (point.y - previous.y) * 0.8;
       this.state.x = point.x + this.dragOffset.x;
@@ -264,8 +303,8 @@ export class Mascot {
       this.pointerId = undefined;
       this.currentBehavior = this.behavior.force("Thrown") ?? this.behavior.force("投げられる") ?? this.findFallBehavior();
       if (this.currentBehavior) {
-        this.state.behaviorName = this.currentBehavior.name;
-        this.actions.start(this.currentBehavior.name, this.createEnvironment(this.dom.getBounds()));
+        const bounds = this.dom.getBounds();
+        this.startBehavior(this.createEnvironment(bounds), bounds, this.platforms);
       }
       if (moved < 4) this.callbacks.click(this.snapshot());
     });

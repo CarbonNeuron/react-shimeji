@@ -47,6 +47,9 @@ export class ShimejiEngine {
   private destroyed = false;
   private initialized = false;
   private platformSource: string | readonly HTMLElement[];
+  private additionalPlatformElements: readonly HTMLElement[] = [];
+  private readonly movedPlatforms = new Map<HTMLElement, { originalTransform: string; x: number; y: number }>();
+  private readonly platformRectangles = new Map<HTMLElement, PlatformRectangle>();
 
   /** Creates and initializes an engine inside a host DOM element. */
   public constructor(private readonly container: HTMLElement, options: ShimejiEngineOptions = {}) {
@@ -57,21 +60,23 @@ export class ShimejiEngine {
     this.initialize();
   }
 
-  /** Starts the clock and global listeners. Calling this method more than once is harmless. */
+  /** Starts the clock and container-aware listeners. Calling this method more than once is harmless. */
   public initialize(): void {
     this.assertAlive();
     if (this.initialized) return;
     this.initialized = true;
+    const document = this.container.ownerDocument;
+    const view = document.defaultView;
+    if (!view) throw new Error("ShimejiEngine requires a container connected to a window");
     this.listen(document, "pointermove", (event) => {
       const pointerEvent = event as PointerEvent;
-      const x = pointerEvent.clientX;
-      const y = pointerEvent.clientY;
+      const { x, y } = this.dom.toLocalPoint(pointerEvent.clientX, pointerEvent.clientY);
       this.pointer = { x, y, dx: x - this.pointer.x, dy: y - this.pointer.y };
     });
-    this.listen(window, "resize", () => this.renderAll());
-    const maintenance = window.setInterval(() => this.dom.ensureMounted(), 2_000);
+    this.listen(view, "resize", () => this.renderAll());
+    const maintenance = view.setInterval(() => this.dom.ensureMounted(), 2_000);
     this.intervals.add(maintenance);
-    this.animationFrame = requestAnimationFrame(this.onAnimationFrame);
+    this.animationFrame = view.requestAnimationFrame(this.onAnimationFrame);
   }
 
   /** Registers or replaces a parsed or legacy character specification. */
@@ -103,8 +108,8 @@ export class ShimejiEngine {
     const random = this.options.random ?? Math.random;
     const spawnOptions: SpawnOptions = {
       ...position,
-      x: position.x ?? bounds.x + random() * bounds.width,
-      y: position.y ?? bounds.y,
+      x: position.x ?? Math.trunc(bounds.x + random() * bounds.width),
+      y: position.y ?? bounds.y + 2,
     };
     const id = `shimeji-${this.nextMascotId++}`;
     const mascot = new Mascot(id, spec, this.dom, this.options, spawnOptions, {
@@ -112,6 +117,7 @@ export class ShimejiEngine {
       count: () => this.mascots.size,
       spawn: (nextCharacterId, nextPosition) => { if (!this.destroyed) this.spawn(nextCharacterId, nextPosition); },
       remove: (mascotId) => { if (!this.destroyed) this.remove(mascotId); },
+      movePlatform: (element, point) => this.movePlatform(element, point),
       click: (state) => this.events.emit("click", state),
       error: (error) => this.events.emit("error", error),
     });
@@ -151,10 +157,11 @@ export class ShimejiEngine {
     return this.events.on(event, listener);
   }
 
-  /** Replaces the DOM elements (or selector) exposed to mascots as platforms. */
-  public setPlatforms(platforms: string | readonly HTMLElement[]): void {
+  /** Replaces the primary platform source and any additional registered elements. */
+  public setPlatforms(platforms: string | readonly HTMLElement[], additionalPlatforms: readonly HTMLElement[] = []): void {
     this.assertAlive();
     this.platformSource = platforms;
+    this.additionalPlatformElements = additionalPlatforms;
   }
 
   /** Stops animation and timers, removes listeners and DOM, and revokes all object URLs. */
@@ -162,12 +169,16 @@ export class ShimejiEngine {
     if (this.destroyed) return;
     for (const mascot of this.mascots.values()) mascot.destroy();
     this.mascots.clear();
-    if (this.animationFrame !== undefined) cancelAnimationFrame(this.animationFrame);
+    const view = this.container.ownerDocument.defaultView;
+    if (this.animationFrame !== undefined) view?.cancelAnimationFrame(this.animationFrame);
     this.animationFrame = undefined;
-    for (const interval of this.intervals) window.clearInterval(interval);
+    for (const interval of this.intervals) view?.clearInterval(interval);
     this.intervals.clear();
     for (const dispose of this.disposers.splice(0)) dispose();
     this.dom.destroy();
+    for (const [element, movement] of this.movedPlatforms) element.style.transform = movement.originalTransform;
+    this.movedPlatforms.clear();
+    this.platformRectangles.clear();
     this.sprites.destroy();
     this.specs.clear();
     this.events.clear();
@@ -186,7 +197,7 @@ export class ShimejiEngine {
     const { bounds, platforms } = this.readFrameGeometry();
     for (const mascot of [...this.mascots.values()]) mascot.tick(delta, bounds, platforms);
     this.emitState();
-    this.animationFrame = requestAnimationFrame(this.onAnimationFrame);
+    this.animationFrame = this.container.ownerDocument.defaultView?.requestAnimationFrame(this.onAnimationFrame);
   };
 
   private renderAll(): void {
@@ -196,9 +207,27 @@ export class ShimejiEngine {
 
   private readFrameGeometry(): { bounds: ReturnType<DomManager["getBounds"]>; platforms: PlatformRectangle[] } {
     const bounds = this.dom.getBounds();
-    const elements = resolvePlatformElements(this.platformSource, this.container.ownerDocument)
-      .filter((element) => !this.dom.owns(element));
-    return { bounds, platforms: readPlatformRectangles(elements, { left: 0, top: 0 }) };
+    const elements = [...new Set([
+      ...resolvePlatformElements(this.platformSource, this.container),
+      ...resolvePlatformElements(this.additionalPlatformElements, this.container),
+    ])].filter((element) => !this.dom.owns(element));
+    const platforms = readPlatformRectangles(elements, this.container.getBoundingClientRect());
+    this.platformRectangles.clear();
+    for (const platform of platforms) this.platformRectangles.set(platform.element, platform);
+    return { bounds, platforms };
+  }
+
+  private movePlatform(element: HTMLElement, point: { x: number; y: number }): void {
+    const rectangle = this.platformRectangles.get(element);
+    if (!rectangle) return;
+    const movement = this.movedPlatforms.get(element) ?? { originalTransform: element.style.transform, x: 0, y: 0 };
+    movement.x += point.x - rectangle.x;
+    movement.y += point.y - rectangle.y;
+    const translate = `translate(${movement.x}px, ${movement.y}px)`;
+    element.style.transform = movement.originalTransform ? `${movement.originalTransform} ${translate}` : translate;
+    rectangle.x = point.x;
+    rectangle.y = point.y;
+    this.movedPlatforms.set(element, movement);
   }
 
   private emitState(): void { this.events.emit("statechange", this.getState()); }

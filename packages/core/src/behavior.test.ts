@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluateExpression, selectWeighted } from "./behavior";
-import type { MascotEnvironment } from "./types";
+import { BehaviorController, evaluateExpression, selectWeighted } from "./behavior";
+import type { BehaviorDefinition, CharacterSpec, MascotEnvironment } from "./types";
 
 const environment = {
   gap: 0,
@@ -37,5 +37,35 @@ describe("weighted selection", () => {
     const values = [{ id: "never", weight: 0 }, { id: "first", weight: 1 }, { id: "second", weight: 3 }];
     expect(selectWeighted(values, (value) => value.weight, () => 0)?.id).toBe("first");
     expect(selectWeighted(values, (value) => value.weight, () => 0.99)?.id).toBe("second");
+  });
+
+  it("adds or replaces global candidates according to NextBehavior Add", () => {
+    const makeBehavior = (name: string, frequency: number, nextAdditive?: boolean): BehaviorDefinition => ({
+      type: "Behavior", name, frequency, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false,
+      ...(nextAdditive !== undefined && { nextAdditive }),
+    });
+    const next = { ...makeBehavior("Next", 10), type: "Reference" as const };
+    const additive = { ...makeBehavior("Additive", 1, true), nextBehaviors: [next] };
+    const exclusive = { ...makeBehavior("Exclusive", 1, false), nextBehaviors: [next] };
+    const character = {
+      id: "behavior-test", spritesheet: "", sprites: {}, actions: [],
+      behaviors: [additive, exclusive, makeBehavior("Global", 10), makeBehavior("Next", 0)],
+    } satisfies CharacterSpec;
+
+    const additiveController = new BehaviorController(character, () => 0);
+    additiveController.selectInitial(environment, "Additive");
+    expect(additiveController.selectNext(environment)?.name).toBe("Additive");
+
+    const exclusiveController = new BehaviorController(character, () => 0);
+    exclusiveController.selectInitial(environment, "Exclusive");
+    expect(exclusiveController.selectNext(environment)?.name).toBe("Next");
+  });
+
+  it("falls back to the required Fall behavior when no weighted candidate is effective", () => {
+    const fall: BehaviorDefinition = { type: "Behavior", name: "Fall", frequency: 0, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false };
+    const controller = new BehaviorController({ id: "fallback", spritesheet: "", sprites: {}, actions: [], behaviors: [fall] }, () => 0);
+    controller.selectInitial(environment, "Fall");
+    expect(controller.selectNext(environment)).toBe(fall);
+    expect(controller.usedFallback()).toBe(true);
   });
 });

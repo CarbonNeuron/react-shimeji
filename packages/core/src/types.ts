@@ -49,6 +49,8 @@ export interface Pose {
 export interface AnimationDefinition {
   /** Optional Shimeji expression controlling whether this animation applies. */
   condition?: string;
+  /** Whether this animation is the turning variant of a Move action. */
+  turn?: boolean;
   /** Ordered pose frames. */
   poses: Pose[];
 }
@@ -91,6 +93,12 @@ export interface ActionDefinition {
   x?: string | number;
   /** Vertical offset expression. */
   y?: string | number;
+  /** Dragging/carrying horizontal offset expression. */
+  offsetX?: string | number;
+  /** Dragging/carrying vertical offset expression. */
+  offsetY?: string | number;
+  /** Whether offsets are measured from the image origin or anchor. */
+  offsetType?: string;
   /** Initial horizontal velocity expression. */
   initialVx?: string | number;
   /** Initial vertical velocity expression. */
@@ -107,6 +115,12 @@ export interface ActionDefinition {
   bornY?: string | number;
   /** Behavior assigned to a spawned child. */
   bornBehavior?: string;
+  /** Optional character identifier assigned to a spawned child. */
+  bornMascot?: string;
+  /** Number of children produced by breeding actions. */
+  bornCount?: string | number;
+  /** Tick interval used by repeating breeding actions. */
+  bornInterval?: string | number;
   /** Carried-element horizontal offset expression. */
   ieOffsetX?: string | number;
   /** Carried-element vertical offset expression. */
@@ -130,6 +144,10 @@ export interface BehaviorDefinition {
   conditions: string[];
   /** Candidates considered after this behavior completes. */
   nextBehaviors: BehaviorDefinition[];
+  /** Whether normal global candidates are retained alongside next behaviors. */
+  nextAdditive?: boolean;
+  /** Action name when it differs from the behavior name. */
+  actionName?: string;
   /** Menu grouping value retained from legacy packs. */
   groupIndex: number;
   /** Whether user interfaces should hide the behavior. */
@@ -278,8 +296,8 @@ export interface MascotEnvironment {
     environment: {
       /** Latest pointer position and velocity. */
       cursor: Point & { dx: number; dy: number };
-      /** Current viewport dimensions. */
-      screen: { width: number; height: number };
+      /** Current container dimensions and, at runtime, its local edge geometry. */
+      screen: { width: number; height: number } & Partial<EnvironmentRectangle>;
       /** Current work-area bounds and edge predicates. */
       workArea: EnvironmentRectangle;
       /** Alias for the work-area bottom edge. */
@@ -302,6 +320,10 @@ export interface MascotEnvironment {
   footX?: number;
   /** Dragging animation foot y-coordinate. */
   footY?: number;
+  /** Current horizontal action velocity. */
+  velocityX?: number;
+  /** Current vertical action velocity. */
+  velocityY?: number;
 }
 
 /** Edge predicate exposed to legacy expressions. */

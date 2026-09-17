@@ -32,15 +32,20 @@ const characters: CharacterSpec[] = await loadMyCharacters();
 
 export function App() {
   return (
-    <>
+    <ShimejiContainer
+      characters={characters}
+      count={15}
+      randomize
+      enabled
+      style={{ minHeight: "100vh" }}
+    >
       <YourApp />
-      <ShimejiContainer characters={characters} count={15} randomize enabled />
-    </>
+    </ShimejiContainer>
   );
 }
 ```
 
-That's it. 15 random mascots walking around your page, fully cleaned up when the component unmounts.
+That's it. 15 random mascots live inside the wrapper, use its edges as walls and floor, and scroll with it.
 
 ### Vanilla TypeScript / JavaScript
 
@@ -68,7 +73,7 @@ engine.destroy();
 
 #### `ShimejiEngine`
 
-The main engine class. Manages character registration, mascot spawning, the animation loop, and resource cleanup.
+The main engine class. The supplied container is the mascot coordinate system and clipping boundary. Platform selectors and element arrays are limited to descendants of that container.
 
 ```ts
 const engine = new ShimejiEngine(container: HTMLElement, options?: ShimejiEngineOptions);
@@ -118,7 +123,7 @@ Parse Shimeji XML definitions into structured `ActionDefinition[]` / `BehaviorDe
 
 #### `<ShimejiContainer>`
 
-Declarative zero-footprint anchor that reconciles independently fixed mascots with React props.
+Declarative bounding box that renders application children and absolutely positioned mascots together. It defaults to `position: relative` and `overflow: hidden`.
 
 ```tsx
 <ShimejiContainer
@@ -126,14 +131,27 @@ Declarative zero-footprint anchor that reconciles independently fixed mascots wi
   count={15}           // number of mascots (default: 1)
   randomize            // random vs round-robin character selection (default: true)
   enabled              // toggle spawning on/off (default: true)
-  platforms=".ledge"  // selector or React.RefObject<HTMLElement>[]
+  platforms=".ledge"   // selector or React.RefObject<HTMLElement>[]
   options={...}        // ShimejiEngineOptions passed to the engine
-  className="my-class" // applied to the empty mount-point anchor
-  style={{ ... }}      // styles for the empty mount-point anchor
-/>
+  className="my-class" // applied to the bounding container
+  style={{ height: 400 }}
+>
+  <YourContent />
+</ShimejiContainer>
 ```
 
 Handles registration, spawning, reconciliation on prop changes, and full cleanup on unmount.
+
+Descendants can register themselves as platforms without lifting refs to the container:
+
+```tsx
+import { useShimejiPlatform } from "@react-shimeji/react";
+
+function Ledge() {
+  const platformRef = useShimejiPlatform<HTMLDivElement>();
+  return <div ref={platformRef}>A walkable ledge</div>;
+}
+```
 
 #### `useShimeji(containerRef, options?)`
 

@@ -1,5 +1,5 @@
 import type { CharacterSpec, ShimejiEngine, ShimejiEngineOptions, SpawnOptions } from "@react-shimeji/core";
-import type { CSSProperties, RefObject } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 
 /** Value returned by {@link useShimeji}. */
 export interface UseShimejiResult {
@@ -13,7 +13,13 @@ export interface UseShimejiResult {
   removeAll(): void;
 }
 
-/** Props accepted by the anchor-based {@link ShimejiContainer}. */
+/** Platform registration API made available to container descendants. */
+export interface ShimejiPlatformContextValue {
+  /** Registers an element and returns a function that unregisters it. */
+  registerPlatform(element: HTMLElement): () => void;
+}
+
+/** Props accepted by the bounding-box {@link ShimejiContainer}. */
 export interface ShimejiContainerProps {
   /** Parsed character specifications available to the component. */
   characters: readonly CharacterSpec[];
@@ -27,8 +33,10 @@ export interface ShimejiContainerProps {
   options?: ShimejiEngineOptions;
   /** DOM element refs, or a selector, whose elements mascots can use as platforms. */
   platforms?: readonly RefObject<HTMLElement>[] | string;
-  /** Optional class applied to the empty mount-point anchor. */
+  /** Content rendered inside the same bounded container as the mascots. */
+  children?: ReactNode;
+  /** Optional class applied to the container. */
   className?: string;
-  /** Optional styles applied to the empty mount-point anchor. */
+  /** Optional styles applied to the container. */
   style?: CSSProperties;
 }

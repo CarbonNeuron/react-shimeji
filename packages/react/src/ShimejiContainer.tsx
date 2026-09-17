@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { ShimejiPlatformContext } from "./ShimejiPlatformContext";
 import { useShimeji } from "./useShimeji";
 import type { ShimejiContainerProps } from "./types";
 
-/** Renders an empty mount-point anchor and reconciles its fixed mascots with React props. */
+/** Renders a bounded container and reconciles its child platforms and mascots. */
 export function ShimejiContainer({
   characters,
   count = 1,
@@ -12,23 +13,35 @@ export function ShimejiContainer({
   platforms,
   className,
   style,
+  children,
 }: ShimejiContainerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
+  const registeredPlatforms = useRef(new Set<HTMLElement>());
+  const [platformVersion, platformsChanged] = useReducer((version: number) => version + 1, 0);
   const { engine } = useShimeji(containerRef, options);
   const characterIds = useMemo(() => characters.map((character) => character.id).join("\0"), [characters]);
+  const registerPlatform = useCallback((element: HTMLElement) => {
+    const added = !registeredPlatforms.current.has(element);
+    registeredPlatforms.current.add(element);
+    if (added) platformsChanged();
+    let registered = true;
+    return () => {
+      if (!registered) return;
+      registered = false;
+      if (registeredPlatforms.current.delete(element)) platformsChanged();
+    };
+  }, []);
+  const platformContext = useMemo(() => ({ registerPlatform }), [registerPlatform]);
 
   useEffect(() => {
     if (!engine) return;
-    if (typeof platforms === "string") {
-      engine.setPlatforms(platforms);
-      return;
-    }
-    if (platforms) {
-      engine.setPlatforms(platforms.flatMap((platform) => platform.current ? [platform.current] : []));
-      return;
-    }
-    engine.setPlatforms(options?.platforms ?? []);
-  }, [engine, options?.platforms, platforms]);
+    const source = typeof platforms === "string"
+      ? platforms
+      : platforms
+        ? platforms.flatMap((platform) => platform.current ? [platform.current] : [])
+        : options?.platforms ?? [];
+    engine.setPlatforms(source, [...registeredPlatforms.current]);
+  }, [engine, options?.platforms, platforms, platformVersion]);
 
   useEffect(() => {
     if (!engine) return;
@@ -70,5 +83,15 @@ export function ShimejiContainer({
     return () => { unsubRemove(); unsubSpawn(); };
   }, [engine, characterIds, characters, count, enabled, randomize]);
 
-  return <div ref={containerRef} className={className} aria-hidden="true" style={style} />;
+  return (
+    <ShimejiPlatformContext.Provider value={platformContext}>
+      <div
+        ref={containerRef}
+        className={className}
+        style={{ position: "relative", overflowX: "clip", ...style }}
+      >
+        {children}
+      </div>
+    </ShimejiPlatformContext.Provider>
+  );
 }
