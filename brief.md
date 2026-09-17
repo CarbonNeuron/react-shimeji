@@ -1,35 +1,46 @@
-# Bug Fix: Two issues with the current engine
+# Bug: IE (Interactive Environment / Platform) behaviors never trigger
 
-## Issue 1: Mascots stuck above the top of the screen
-Mascots spawn at `bounds.y + 2` (which is y=2, near the top of the container) but they're getting stuck there instead of falling down. Users can only see their feet poking out from the top. The Fall behavior is not triggering properly from the spawn position — either the `isOnTop` ceiling check is catching them (tolerance issue), or the initial behavior selection is picking a walk/stand instead of Fall.
+## Problem
+Mascots land on platforms and walk on them correctly, but **never jump to platforms, climb platform walls, or interact with platform edges** (IE behaviors like `IEの壁を登る`, `IEを右に投げる`, `IEの天井でずりずり`, etc. from the XML behavior definitions).
 
-Fix the spawn so mascots reliably fall from the top to the floor of the container on first spawn.
+These IE behaviors have conditions that check things like:
+- `#{mascot.environment.activeIE.visible}` 
+- `#{mascot.environment.activeIE.topBorder.isOn(mascot.anchor)}`
+- `#{mascot.anchor.x >= mascot.environment.activeIE.left && mascot.anchor.x < mascot.environment.activeIE.right}`
 
-## Issue 2: Mascots fall through platform boxes (DOM elements)
-Mascots no longer interact with platform boxes (`data-shimeji-platform` DOM elements). They fall right through them instead of landing on top, climbing sides, etc. This is a regression from the Java engine port.
+## What works
+- Mascots spawn, fall, land on the floor
+- Mascots land on platform elements (`[data-shimeji-platform]`) and walk on them
+- `selectActivePlatform()` in `mascot.ts` does find platforms and sets `activeIE`
 
-Your previous fix for this (border tolerance, FallWithIE/WalkWithIE attachment checks) was generated but never got committed because the tree was already clean when you ran. You need to redo that fix:
-- Restore sub-pixel-safe border detection for fractional DOM rectangles in `physics.ts`
-- Fix `FallWithIE`/`WalkWithIE` attachment checks in `action.ts`
-- Make sure `isOnFloor`/`isOnTop`/`isOnWall` tolerance values work with real DOM `getBoundingClientRect()` values (which are fractional floats, not integers)
+## What doesn't work
+- Mascots never jump FROM floor TO a platform
+- Mascots never climb platform side walls
+- Mascots never crawl along platform ceilings
+- Basically all IE-prefixed behaviors from the XML are dormant
 
-## Files to look at
-- `packages/core/src/engine.ts` — spawn logic (~line 103-130)
-- `packages/core/src/physics.ts` — border detection, `isOnTop`/`isOnFloor`/`isOnWall`, tolerance values
-- `packages/core/src/action.ts` — FallRuntime, CarryFallRuntime, CarryMoveRuntime, border checks
-- `packages/core/src/mascot.ts` — `ensureBehavior`, `legacyTick`, `selectActivePlatform`
-- Java reference source: `~/react-shimeji/shimejieesrc/` for how the original handles spawning and platform detection
+## Key files
+- `packages/core/src/mascot.ts` — `createEnvironment()` (line ~211), `selectActivePlatform()` (line ~237), `environmentRectangle()` / `edge()` helpers
+- `packages/core/src/behavior.ts` — `selectNext()`, condition evaluation via `evaluateExpression()`, expression parser
+- `packages/core/src/action.ts` — `selectBorder()`, `matchingActivePlatform()`, `CarryFallRuntime`, `CarryMoveRuntime`, `JumpRuntime`
+- `packages/core/src/physics.ts` — `isOnTop/isOnBottom/isOnLeft/isOnRight`, `BORDER_TOLERANCE`
 
-## Requirements
-- Mascots must spawn and reliably fall to the container floor
-- Mascots must land on platform boxes, walk on them, sit on edges, climb sides
-- All existing tests must pass (`npx vitest run`)
-- `npx tsc --noEmit` must be clean
-- Do NOT break other behaviors (walking, wall bouncing, breeding, dragging)
+## Hypotheses to investigate (run the code, don't just read it)
 
-## Verification
-```
-npx vitest run
-npx tsc --noEmit
-```
-Both must pass with zero errors.
+1. **`activeIE.visible` is false when it should be true** — `selectActivePlatform()` has a fallback that finds the nearest platform within 400px (`PLATFORM_NEARBY_DISTANCE`). When a mascot is walking on the floor near a platform, does this fallback actually fire? Or does the function return `undefined` because the mascot isn't "on" any platform and isn't falling? If `activeIE.visible` stays false, ALL IE behavior conditions fail.
+
+2. **Expression evaluation bug** — The condition expressions in the XML use `#{...}` syntax with property access like `mascot.environment.activeIE.visible` and method calls like `mascot.environment.floor.isOn(mascot.anchor)`. Does the expression evaluator in `behavior.ts` correctly resolve these deep property paths against the `MascotEnvironment` object? Are `topBorder`, `leftBorder`, `rightBorder`, `bottomBorder` properties actually present on the `activeIE` object returned by `createEnvironment()`?
+
+3. **Missing border objects on activeIE** — In `createEnvironment()`, `activeIE` is built from `environmentRectangle(platform)` which returns `{x, y, width, height}` plus `visible: true`. But the XML conditions reference `activeIE.topBorder.isOn(...)`, `activeIE.leftBorder.isOn(...)` etc. Does `environmentRectangle()` or the environment object actually have these `.topBorder` / `.leftBorder` sub-objects with `.isOn()` methods? If not, that's the bug — conditions referencing nonexistent properties would evaluate to false/undefined.
+
+4. **`JumpRuntime` targetX/targetY resolution** — Jump behaviors define target coordinates via expressions. Does the jump action correctly resolve target positions pointing at platform locations?
+
+## Your task
+
+1. **Write a focused test** that creates a mascot on the floor with a platform nearby, ticks it repeatedly, and asserts that an IE behavior (jump-to-IE, wall-climb, etc.) eventually gets selected. Log what `selectActivePlatform()` returns and what `activeIE` looks like in the environment passed to behavior selection.
+
+2. **Find and fix the root cause** — most likely hypothesis #3 (missing border sub-objects on activeIE) but verify by running code, not guessing.
+
+3. **Run `npx vitest run` and `npx tsc --noEmit`** — all tests must pass, no type errors.
+
+4. Do NOT bump versions or modify package.json. Just fix the bug and add tests.

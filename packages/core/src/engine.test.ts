@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BehaviorController } from "./behavior";
 import { ShimejiEngine } from "./engine";
-import type { ActionDefinition, CharacterSpec } from "./types";
+import { Mascot } from "./mascot";
+import type { PlatformRectangle } from "./platform";
+import type { ActionDefinition, CharacterSpec, MascotEnvironment } from "./types";
 
 const spec: CharacterSpec = {
   id: "test",
@@ -168,6 +171,79 @@ describe("ShimejiEngine lifecycle", () => {
 
     expect(platformRectangle).toHaveBeenCalledOnce();
     expect(engine.getState().map(({ y }) => y)).toEqual([200, 200]);
+    engine.destroy();
+  });
+
+  it("selects an IE jump from the floor when a platform is nearby", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const platform = document.createElement("div");
+    vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
+      left: 100, top: 120, width: 100, height: 20,
+    } as DOMRect);
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    host.append(platform);
+    document.body.append(host);
+
+    const selectedPlatforms: Array<PlatformRectangle | undefined> = [];
+    const mascotPrototype = Mascot.prototype as unknown as {
+      selectActivePlatform(platforms: readonly PlatformRectangle[]): PlatformRectangle | undefined;
+    };
+    const selectActivePlatform = mascotPrototype.selectActivePlatform;
+    vi.spyOn(mascotPrototype, "selectActivePlatform").mockImplementation(function (this: Mascot, platforms) {
+      const selected = selectActivePlatform.call(this, platforms);
+      selectedPlatforms.push(selected);
+      return selected;
+    });
+    const selectionEnvironments: MascotEnvironment[] = [];
+    const selectNext = BehaviorController.prototype.selectNext;
+    vi.spyOn(BehaviorController.prototype, "selectNext").mockImplementation(function (this: BehaviorController, environment) {
+      selectionEnvironments.push(environment);
+      return selectNext.call(this, environment);
+    });
+    const engine = new ShimejiEngine(host, { platforms: [platform], random: () => 0 });
+    engine.registerCharacter({
+      ...spec,
+      actions: [
+        ...spec.actions,
+        { type: "Stay", name: "Wait", borderType: "Floor", duration: 1 },
+        {
+          type: "Embedded", name: "JumpToIE", embedType: "Jump", velocity: 20,
+          targetX: "${mascot.environment.activeIE.left}",
+          targetY: "${mascot.environment.activeIE.bottom + 64}",
+        },
+      ],
+      behaviors: [
+        { ...spec.behaviors[0]!, frequency: 0 },
+        { ...behavior("Wait"), frequency: 0 },
+        {
+          ...behavior("JumpToIE"),
+          conditions: [
+            "#{mascot.environment.floor.isOn(mascot.anchor)}",
+            "#{mascot.environment.activeIE.visible}",
+            "#{mascot.anchor.x < mascot.environment.activeIE.left}",
+          ],
+        },
+      ],
+    });
+    engine.spawn("test", { x: 50, y: 300, behaviorName: "Wait" });
+
+    for (let timestamp = 40; timestamp <= 400 && engine.getState()[0]?.behaviorName !== "JumpToIE"; timestamp += 40) frame?.(timestamp);
+
+    const activeIE = selectionEnvironments.at(-1)?.mascot.environment.activeIE;
+    expect(selectedPlatforms.some((selected) => selected?.element === platform)).toBe(true);
+    expect(activeIE).toMatchObject({ x: 100, y: 120, width: 100, height: 20, visible: true });
+    expect(activeIE?.topBorder.isOn({ x: 150, y: 120 })).toBe(true);
+    expect(activeIE?.leftBorder.isOn({ x: 100, y: 130 })).toBe(true);
+    expect(activeIE?.rightBorder.isOn({ x: 200, y: 130 })).toBe(true);
+    expect(activeIE?.bottomBorder.isOn({ x: 150, y: 140 })).toBe(true);
+    expect(engine.getState()[0]?.behaviorName).toBe("JumpToIE");
+    frame?.(80);
+    expect(engine.getState()[0]).toMatchObject({ x: 57, y: 282 });
     engine.destroy();
   });
 
