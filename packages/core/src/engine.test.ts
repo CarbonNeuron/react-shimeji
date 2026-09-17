@@ -46,8 +46,8 @@ describe("ShimejiEngine lifecycle", () => {
     engine.registerCharacter(spec);
     const id = engine.spawn("test", { x: 20, y: 30 });
     expect(engine.getState()).toMatchObject([{ id, characterId: "test", x: 20, y: 30 }]);
-    const mascot = host.querySelector<HTMLElement>(`[data-shimeji-id="${id}"]`)!;
-    expect(mascot.parentElement).toBe(host);
+    const mascot = document.body.querySelector<HTMLElement>(`[data-shimeji-id="${id}"]`)!;
+    expect(mascot.parentElement).toBe(document.body);
     expect(mascot.style.position).toBe("fixed");
     expect(mascot.style.pointerEvents).toBe("none");
     expect(mascot.style.zIndex).toBe("9999");

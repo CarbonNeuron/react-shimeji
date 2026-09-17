@@ -35,18 +35,19 @@ describe("ShimejiContainer", () => {
   it("preserves mascots across rerenders and cleans up on unmount", () => {
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} />));
     const anchor = host.firstElementChild as HTMLElement;
-    const ids = Array.from(host.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"));
+    // Mascots are appended to document.body (not the container) so position:fixed always works
+    const ids = Array.from(document.body.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"));
     expect(ids).toHaveLength(2);
     expect(anchor.style.position).toBe("");
     expect(anchor.style.inset).toBe("");
     expect(anchor.style.width).toBe("");
     expect(anchor.style.height).toBe("");
-    expect(anchor.querySelector<HTMLElement>("[data-shimeji-id]")?.style.position).toBe("fixed");
-    expect(host.querySelector("[data-react-shimeji-work-area]")).toBeNull();
+    expect(document.body.querySelector<HTMLElement>("[data-shimeji-id]")?.style.position).toBe("fixed");
+    expect(document.body.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} className="updated" />));
-    expect(Array.from(host.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"))).toEqual(ids);
+    expect(Array.from(document.body.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"))).toEqual(ids);
     act(() => root.unmount());
-    expect(host.querySelector("[data-react-shimeji-work-area]")).toBeNull();
+    expect(document.body.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     expect(cancelAnimationFrame).toHaveBeenCalledWith(11);
     root = createRoot(host);
   });

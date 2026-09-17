@@ -23,8 +23,9 @@ export class DomManager {
 
   /** Reattaches mascot elements if application code temporarily removed them. */
   public ensureMounted(): void {
+    const target = this.container.ownerDocument.body;
     for (const handle of this.handles) {
-      if (handle.element.parentElement !== this.container) this.container.appendChild(handle.element);
+      if (handle.element.parentElement !== target) target.appendChild(handle.element);
     }
   }
 
@@ -46,7 +47,7 @@ export class DomManager {
     element.appendChild(spriteElement);
     const handle = { element, spriteElement, spriteLease };
     this.handles.add(handle);
-    this.container.appendChild(element);
+    this.container.ownerDocument.body.appendChild(element);
     return handle;
   }
 
