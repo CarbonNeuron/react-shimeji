@@ -267,7 +267,10 @@ export class Mascot {
       const overlapsVertically = currentBox.y < sibling.y + sibling.height
         && sibling.y < currentBox.y + currentBox.height;
       const crossesHorizontally = sweptLeft <= sibling.x + sibling.width && sibling.x <= sweptRight;
-      return isAhead && overlapsVertically && crossesHorizontally;
+      // Skip collision when already overlapping — avoid infinite flip-flop on spawn
+      const wasAlreadyOverlapping = overlapsVertically
+        && previousBox.x < sibling.x + sibling.width && sibling.x < previousBox.x + previousBox.width;
+      return isAhead && overlapsVertically && crossesHorizontally && !wasAlreadyOverlapping;
     });
     if (!collision) return;
 
