@@ -237,7 +237,7 @@ export interface ShimejiEngineOptions {
   gravity?: number;
   /** Maximum elapsed time applied to one animation update. Defaults to 100 ms. */
   maxDeltaTime?: number;
-  /** CSS class added to the generated work area. */
+  /** @deprecated There is no shared work area; retained for source compatibility. */
   workAreaClassName?: string;
   /** CSS class added to each generated mascot element. */
   mascotClassName?: string;

@@ -13,7 +13,7 @@ export interface UseShimejiResult {
   removeAll(): void;
 }
 
-/** Props accepted by the full-viewport {@link ShimejiContainer}. */
+/** Props accepted by the anchor-based {@link ShimejiContainer}. */
 export interface ShimejiContainerProps {
   /** Parsed character specifications available to the component. */
   characters: readonly CharacterSpec[];
@@ -27,8 +27,8 @@ export interface ShimejiContainerProps {
   options?: ShimejiEngineOptions;
   /** DOM element refs, or a selector, whose elements mascots can use as platforms. */
   platforms?: readonly RefObject<HTMLElement>[] | string;
-  /** Optional class applied to the full-viewport host. */
+  /** Optional class applied to the empty mount-point anchor. */
   className?: string;
-  /** Optional style overrides for the host. */
+  /** Optional styles applied to the empty mount-point anchor. */
   style?: CSSProperties;
 }

@@ -40,8 +40,6 @@ export class ShimejiEngine {
   private readonly disposers: Array<() => void> = [];
   private readonly intervals = new Set<number>();
   private readonly options: ResolvedEngineOptions;
-  private readonly originalContainerPosition: string;
-  private readonly adjustedContainerPosition: boolean;
   private pointer = { x: 0, y: 0, dx: 0, dy: 0 };
   private animationFrame: number | undefined;
   private lastFrameTime: number | undefined;
@@ -55,10 +53,7 @@ export class ShimejiEngine {
     if (!container) throw new TypeError("ShimejiEngine requires a container element");
     this.options = { ...defaults, ...options, random: options.random };
     this.platformSource = this.options.platforms;
-    this.originalContainerPosition = container.style.position;
-    this.adjustedContainerPosition = getComputedStyle(container).position === "static";
-    if (this.adjustedContainerPosition) container.style.position = "relative";
-    this.dom = new DomManager(container, this.sprites, this.options.workAreaClassName || undefined);
+    this.dom = new DomManager(container, this.sprites);
     this.initialize();
   }
 
@@ -69,9 +64,8 @@ export class ShimejiEngine {
     this.initialized = true;
     this.listen(document, "pointermove", (event) => {
       const pointerEvent = event as PointerEvent;
-      const rectangle = this.dom.workArea.getBoundingClientRect();
-      const x = pointerEvent.clientX - rectangle.left;
-      const y = pointerEvent.clientY - rectangle.top;
+      const x = pointerEvent.clientX;
+      const y = pointerEvent.clientY;
       this.pointer = { x, y, dx: x - this.pointer.x, dy: y - this.pointer.y };
     });
     this.listen(window, "resize", () => this.renderAll());
@@ -177,7 +171,6 @@ export class ShimejiEngine {
     this.sprites.destroy();
     this.specs.clear();
     this.events.clear();
-    if (this.adjustedContainerPosition && this.container.style.position === "relative") this.container.style.position = this.originalContainerPosition;
     this.destroyed = true;
     this.initialized = false;
   }
@@ -202,10 +195,10 @@ export class ShimejiEngine {
   }
 
   private readFrameGeometry(): { bounds: ReturnType<DomManager["getBounds"]>; platforms: PlatformRectangle[] } {
-    const workAreaRectangle = this.dom.workArea.getBoundingClientRect();
-    const bounds = this.dom.getBoundsFromClientRectangle(workAreaRectangle);
-    const elements = resolvePlatformElements(this.platformSource, this.container.ownerDocument, this.dom.workArea);
-    return { bounds, platforms: readPlatformRectangles(elements, workAreaRectangle) };
+    const bounds = this.dom.getBounds();
+    const elements = resolvePlatformElements(this.platformSource, this.container.ownerDocument)
+      .filter((element) => !this.dom.owns(element));
+    return { bounds, platforms: readPlatformRectangles(elements, { left: 0, top: 0 }) };
   }
 
   private emitState(): void { this.events.emit("statechange", this.getState()); }

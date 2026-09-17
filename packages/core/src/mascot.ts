@@ -225,7 +225,7 @@ export class Mascot {
   }
 
   private installPointerHandlers(): void {
-    const element = this.domHandle.element;
+    const element = this.domHandle.spriteElement;
     const listen = <K extends keyof HTMLElementEventMap>(target: EventTarget, type: K, listener: (event: HTMLElementEventMap[K]) => void): void => {
       target.addEventListener(type, listener as EventListener);
       this.disposers.push(() => target.removeEventListener(type, listener as EventListener));
@@ -234,8 +234,7 @@ export class Mascot {
       const pointerEvent = event as PointerEvent;
       if (pointerEvent.button !== 0) return;
       event.preventDefault();
-      const bounds = this.dom.workArea.getBoundingClientRect();
-      const point = { x: pointerEvent.clientX - bounds.left, y: pointerEvent.clientY - bounds.top };
+      const point = { x: pointerEvent.clientX, y: pointerEvent.clientY };
       this.pointerId = pointerEvent.pointerId;
       this.pointerDown = point;
       this.lastPointer = point;
@@ -249,8 +248,7 @@ export class Mascot {
     listen(document, "pointermove", (event) => {
       const pointerEvent = event as PointerEvent;
       if (!this.state.dragging || pointerEvent.pointerId !== this.pointerId) return;
-      const bounds = this.dom.workArea.getBoundingClientRect();
-      const point = { x: pointerEvent.clientX - bounds.left, y: pointerEvent.clientY - bounds.top };
+      const point = { x: pointerEvent.clientX, y: pointerEvent.clientY };
       const previous = this.lastPointer ?? point;
       this.state.vx = (point.x - previous.x) * 0.8;
       this.state.vy = (point.y - previous.y) * 0.8;

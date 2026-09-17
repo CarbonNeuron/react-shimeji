@@ -34,8 +34,15 @@ describe("ShimejiContainer", () => {
 
   it("preserves mascots across rerenders and cleans up on unmount", () => {
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} />));
+    const anchor = host.firstElementChild as HTMLElement;
     const ids = Array.from(host.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"));
     expect(ids).toHaveLength(2);
+    expect(anchor.style.position).toBe("");
+    expect(anchor.style.inset).toBe("");
+    expect(anchor.style.width).toBe("");
+    expect(anchor.style.height).toBe("");
+    expect(anchor.querySelector<HTMLElement>("[data-shimeji-id]")?.style.position).toBe("fixed");
+    expect(host.querySelector("[data-react-shimeji-work-area]")).toBeNull();
     act(() => root.render(<ShimejiContainer characters={[character]} count={2} randomize={false} className="updated" />));
     expect(Array.from(host.querySelectorAll("[data-shimeji-id]"), (element) => element.getAttribute("data-shimeji-id"))).toEqual(ids);
     act(() => root.unmount());

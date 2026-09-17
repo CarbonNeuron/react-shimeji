@@ -3,9 +3,9 @@ import type { CharacterSpec, MascotState, Rectangle } from "./types";
 
 /** DOM nodes and resources owned by one mascot. */
 export interface MascotDomHandle {
-  /** Pointer-interactive mascot wrapper. */
+  /** Fixed, pointer-transparent mascot wrapper. */
   element: HTMLDivElement;
-  /** Child element on which sprite images are painted. */
+  /** Pointer-interactive child element on which sprite images are painted. */
   spriteElement: HTMLDivElement;
   /** Per-mascot spritesheet URL lease. */
   spriteLease: SpriteLease;
@@ -13,41 +13,25 @@ export interface MascotDomHandle {
 
 /** Creates and updates all DOM owned by an engine instance. */
 export class DomManager {
-  /** Generated element that contains all mascots. */
-  public readonly workArea: HTMLDivElement;
+  private readonly handles = new Set<MascotDomHandle>();
 
-  /** Creates an isolated work area inside the supplied host element. */
+  /** Uses the supplied element only as a mount point for independent mascots. */
   public constructor(
     private readonly container: HTMLElement,
     private readonly sprites: SpriteManager,
-    workAreaClassName?: string,
-  ) {
-    const workArea = document.createElement("div");
-    workArea.dataset.reactShimejiWorkArea = "true";
-    if (workAreaClassName) workArea.className = workAreaClassName;
-    Object.assign(workArea.style, {
-      position: "absolute", inset: "0", width: "100%", height: "100%",
-      overflow: "hidden", pointerEvents: "none", zIndex: "2147483643",
-    });
-    this.workArea = workArea;
-    this.ensureMounted();
-  }
+  ) {}
 
-  /** Reattaches the work area if application code temporarily removed it. */
+  /** Reattaches mascot elements if application code temporarily removed them. */
   public ensureMounted(): void {
-    if (this.workArea.parentElement !== this.container) this.container.appendChild(this.workArea);
+    for (const handle of this.handles) {
+      if (handle.element.parentElement !== this.container) this.container.appendChild(handle.element);
+    }
   }
 
-  /** Returns the current local work-area rectangle. */
+  /** Returns viewport bounds because fixed mascots use viewport coordinates. */
   public getBounds(): Rectangle {
-    return this.getBoundsFromClientRectangle(this.workArea.getBoundingClientRect());
-  }
-
-  /** Converts a previously-read work-area client rectangle into local bounds. */
-  public getBoundsFromClientRectangle(rectangle: Pick<DOMRect, "width" | "height">): Rectangle {
-    const width = rectangle.width || this.container.clientWidth || window.innerWidth;
-    const height = rectangle.height || this.container.clientHeight || window.innerHeight;
-    return { x: 0, y: 0, width, height };
+    const view = this.container.ownerDocument.defaultView ?? window;
+    return { x: 0, y: 0, width: view.innerWidth, height: view.innerHeight };
   }
 
   /** Creates a mascot node and acquires its spritesheet resource. */
@@ -56,12 +40,14 @@ export class DomManager {
     const element = document.createElement("div");
     element.dataset.shimejiId = mascotId;
     if (mascotClassName) element.className = mascotClassName;
-    Object.assign(element.style, { position: "absolute", left: "0", top: "0", width: "0", height: "0", pointerEvents: "auto", touchAction: "none", userSelect: "none", willChange: "transform" });
+    Object.assign(element.style, { position: "fixed", left: "0", top: "0", width: "0", height: "0", pointerEvents: "none", zIndex: "9999", userSelect: "none", willChange: "transform" });
     const spriteElement = document.createElement("div");
-    Object.assign(spriteElement.style, { position: "absolute", left: "0", top: "0", backgroundRepeat: "no-repeat", transformOrigin: "center center", pointerEvents: "none" });
+    Object.assign(spriteElement.style, { position: "absolute", left: "0", top: "0", backgroundRepeat: "no-repeat", transformOrigin: "center center", pointerEvents: "auto", touchAction: "none", userSelect: "none" });
     element.appendChild(spriteElement);
-    this.workArea.appendChild(element);
-    return { element, spriteElement, spriteLease };
+    const handle = { element, spriteElement, spriteLease };
+    this.handles.add(handle);
+    this.container.appendChild(element);
+    return handle;
   }
 
   /** Paints one mascot state into its existing DOM nodes. */
@@ -95,10 +81,19 @@ export class DomManager {
 
   /** Removes one mascot node and releases its temporary image URL. */
   public removeMascot(handle: MascotDomHandle): void {
+    if (!this.handles.delete(handle)) return;
     handle.element.remove();
     handle.spriteLease.release();
   }
 
-  /** Removes the work area owned by this manager. */
-  public destroy(): void { this.workArea.remove(); }
+  /** Returns whether an element belongs to one of this manager's mascots. */
+  public owns(element: HTMLElement): boolean {
+    for (const handle of this.handles) if (handle.element === element || handle.element.contains(element)) return true;
+    return false;
+  }
+
+  /** Removes every mascot element and releases its temporary image URL. */
+  public destroy(): void {
+    for (const handle of [...this.handles]) this.removeMascot(handle);
+  }
 }

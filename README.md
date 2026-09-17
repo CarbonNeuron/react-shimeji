@@ -95,7 +95,7 @@ interface ShimejiEngineOptions {
   frameDuration?: number;      // Animation unit in ms (default: 40)
   gravity?: number;            // Default gravity (default: 2)
   maxDeltaTime?: number;       // Frame delta clamp in ms (default: 100)
-  workAreaClassName?: string;  // CSS class for the work area overlay
+  workAreaClassName?: string;  // Deprecated compatibility option (no shared work area)
   mascotClassName?: string;    // CSS class for individual mascot elements
   platforms?: string | readonly HTMLElement[]; // Interactive DOM platforms
   random?: () => number;       // Custom RNG for deterministic behavior selection
@@ -118,7 +118,7 @@ Parse Shimeji XML definitions into structured `ActionDefinition[]` / `BehaviorDe
 
 #### `<ShimejiContainer>`
 
-Declarative full-viewport overlay that reconciles mascot count with React props.
+Declarative zero-footprint anchor that reconciles independently fixed mascots with React props.
 
 ```tsx
 <ShimejiContainer
@@ -128,8 +128,8 @@ Declarative full-viewport overlay that reconciles mascot count with React props.
   enabled              // toggle spawning on/off (default: true)
   platforms=".ledge"  // selector or React.RefObject<HTMLElement>[]
   options={...}        // ShimejiEngineOptions passed to the engine
-  className="my-class" // applied to the host div
-  style={{ ... }}      // style overrides for the host div
+  className="my-class" // applied to the empty mount-point anchor
+  style={{ ... }}      // styles for the empty mount-point anchor
 />
 ```
 
@@ -189,7 +189,7 @@ The engine tracks every resource it creates:
 - **Timers** — all `setInterval` handles are tracked and cleared on `destroy()`.
 - **Event listeners** — every `addEventListener` is paired with a removal closure in a disposer array, flushed on `destroy()`.
 - **Animation frames** — the `requestAnimationFrame` handle is cancelled on `destroy()`.
-- **DOM nodes** — the work area and all mascot elements are removed from the document.
+- **DOM nodes** — all independently mounted mascot elements are removed from the document.
 
 `destroy()` is idempotent — calling it multiple times is safe.
 

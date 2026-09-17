@@ -28,7 +28,7 @@ export function resolvePlatformElements(
   );
 }
 
-/** Reads platform bounds once and converts viewport coordinates to work-area coordinates. */
+/** Reads platform bounds once and converts viewport coordinates to the supplied origin. */
 export function readPlatformRectangles(
   elements: readonly HTMLElement[],
   workAreaRectangle: Pick<DOMRect, "left" | "top">,

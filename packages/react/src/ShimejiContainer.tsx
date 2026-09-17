@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useShimeji } from "./useShimeji";
 import type { ShimejiContainerProps } from "./types";
 
-/** Renders a full-viewport overlay and reconciles its mascots with React props. */
+/** Renders an empty mount-point anchor and reconciles its fixed mascots with React props. */
 export function ShimejiContainer({
   characters,
   count = 1,
@@ -70,12 +70,5 @@ export function ShimejiContainer({
     return () => { unsubRemove(); unsubSpawn(); };
   }, [engine, characterIds, characters, count, enabled, randomize]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      aria-hidden="true"
-      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", overflow: "hidden", pointerEvents: "none", zIndex: 2147483643, ...style }}
-    />
-  );
+  return <div ref={containerRef} className={className} aria-hidden="true" style={style} />;
 }
