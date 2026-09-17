@@ -1,6 +1,6 @@
 {
   "name": "@react-shimeji/react",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "React bindings for @react-shimeji/core",
   "license": "MIT",
   "type": "module",

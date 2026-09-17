@@ -208,6 +208,36 @@ describe("ShimejiEngine lifecycle", () => {
     engine.destroy();
   });
 
+  it("separates grounded mascots that spawn at the same position", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    document.body.append(host);
+    const engine = new ShimejiEngine(host);
+    engine.registerCharacter({
+      ...spec,
+      actions: [...spec.actions, animatedAction("Walk", { x: -8, y: 0 })],
+      behaviors: [{ ...spec.behaviors[0]!, frequency: 0 }, behavior("Walk")],
+    });
+    engine.spawn("test", { x: 100, y: 300, behaviorName: "Walk" });
+    engine.spawn("test", { x: 100, y: 300, behaviorName: "Walk" });
+
+    const distances: number[] = [];
+    for (let timestamp = 40; timestamp <= 240; timestamp += 40) {
+      frame?.(timestamp);
+      const [first, second] = engine.getState();
+      distances.push(Math.abs(second!.x - first!.x));
+      expect([first!.lookRight, second!.lookRight]).toEqual([false, true]);
+    }
+
+    expect(distances).toEqual([8, 24, 40, 56, 72, 88]);
+    engine.destroy();
+  });
+
   it("does not block a falling mascot when it overlaps a sibling", () => {
     let frame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));

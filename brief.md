@@ -1,27 +1,44 @@
-# Feature: Mascot-to-mascot collision avoidance
+# Bug: Mascots stuck in infinite flip-loop when spawning at same position
 
-## Goal
-Mascots should be aware of each other and avoid walking through each other. When two mascots are about to collide, they should react — turn around, stop, jump over, or otherwise acknowledge the other mascot's presence instead of just phasing through.
+## Problem
+When multiple mascots spawn at the same X coordinate (which happens often since `engine.ts` spawn picks random X within bounds), they overlap and get stuck in an infinite flip-flop loop:
 
-## How it should work
+1. Mascot A moves right, detects sibling B ahead → collision triggers → revert x, zero vx, flip lookRight
+2. Next tick: Mascot A now moves left, detects sibling B ahead again → collision triggers → flip back
+3. Repeat forever
 
-1. **Collision detection**: Each tick, each mascot should check if any other mascot's bounding box overlaps or is about to overlap with theirs. The bounding box can be derived from the mascot's position (x, y) and sprite dimensions (anchorX, anchorY + some reasonable hitbox width/height — maybe 32x64 or derived from the sprite sheet).
+## Previous fix attempt (FAILED)
+Added `wasAlreadyOverlapping` check to skip collision when the previous frame's hitbox already overlapped. This doesn't work because the collision *response* reverts `this.state.x = previous.x` — so the mascot never actually separates, and `wasAlreadyOverlapping` is true every frame after the first collision... but on the *first* frame they weren't overlapping yet (they spawned at the same spot and then one moved), so collision fires, reverts position, and then subsequent frames they ARE overlapping so it doesn't fire — but by then the flip already happened and the cycle continues on alternating frames.
 
-2. **Avoidance behavior**: When a mascot detects another mascot in its path:
-   - If walking and about to collide: turn around (flip `lookRight`) or stop
-   - If falling toward another mascot: allow it (don't block gravity)
-   - Keep it simple — no complex pathfinding, just basic "don't walk into each other"
+## Where to fix
+`packages/core/src/mascot.ts`, method `avoidSiblingCollision()` (lines ~241-280).
 
-3. **Implementation approach**: The engine already has a `MascotManager` or equivalent that tracks all mascots. Each mascot's `legacyTick()` gets `bounds` and `platforms` — we'd need to also pass sibling mascot positions. Options:
-   - Add a `siblings` or `others` parameter to the tick that contains positions/bounding boxes of all other mascots
-   - Or query the mascot manager/engine for nearby mascots during tick
+Current collision response (lines 277-279):
+```ts
+this.state.x = previous.x;
+this.state.vx = 0;
+this.state.lookRight = !this.state.lookRight;
+```
 
-4. **Soft collision, not hard**: Mascots shouldn't block each other rigidly (that causes physics issues). Instead, treat nearby mascots as a behavioral signal — "there's someone in my way, I should do something different." This is a behavior-level reaction, not a physics-level wall.
+## What needs to happen
+The collision system needs to handle the "already overlapping" case gracefully. When two mascots are already overlapping (spawned at same spot), they should walk *apart* instead of flip-flopping. Possible approaches:
 
-## Key constraints
-- Performance: collision checks should be O(n) per mascot, not O(n²) — or if O(n²), keep it cheap (just position distance checks, no complex geometry)
-- Don't break existing behavior transitions — collision avoidance should be a gentle nudge, not a hard override
-- Mascots should still be able to exist near each other (e.g., both standing on the same platform), just not walk THROUGH each other
-- Run `npx vitest run` and `npx tsc --noEmit` — all must pass
-- Work in `~/react-shimeji`
-- Do NOT bump versions or modify package.json
+1. **Separation nudge**: When already overlapping, instead of reverting + flipping, nudge the mascot in the direction *away* from the sibling's center (push them apart).
+2. **Cooldown/flag**: After a collision triggers, give the mascot a brief cooldown (e.g. a few ticks) before collision can trigger again, so it has time to actually walk away.
+3. **Only collide when approaching**: Check relative velocity — only trigger collision when the mascots are actually moving toward each other, not when one is trying to move away.
+
+Option 3 is probably cleanest. The key insight: if `dx > 0` (moving right) and the sibling is to the right, that's an approach. But if `dx > 0` and the sibling is to the LEFT, we're already moving away — don't interfere. Current code checks `isAhead` which does this... but the problem is the flip makes "ahead" toggle every frame.
+
+A better approach might be: **don't flip direction on collision at all** — just stop forward movement (revert x, zero vx) without flipping. The mascot's current behavior will eventually time out and a new behavior will be selected (possibly walking the other way). This prevents the flip-flop entirely while still preventing mascots from walking through each other.
+
+Or combine: only flip if the mascot wasn't already flipped by a collision recently.
+
+## Constraints
+- Don't break the existing collision avoidance for mascots that are NOT overlapping (walking toward each other from a distance should still work)
+- Tests must pass: `npx vitest run` (currently 50 passing)
+- Type check must pass: `npx tsc --noEmit`
+- Add a regression test for this specific scenario: two mascots spawning at the same position should not get stuck
+
+## Files likely involved
+- `packages/core/src/mascot.ts` — `avoidSiblingCollision()` method, `collisionBox()` method, collision constants
+- `packages/core/src/engine.test.ts` — add regression test here

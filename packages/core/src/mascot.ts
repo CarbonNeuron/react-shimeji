@@ -50,6 +50,8 @@ const IE_BEHAVIOR_NAME_PATTERN = /wall|climb|crawl|壁|登|よじ/i;
 /** Lightweight geometry shared between mascots for behavioral collision avoidance. */
 export interface MascotCollisionBox extends Rectangle {
   id: string;
+  /** Stable anchor position, unaffected by sprite mirroring. */
+  positionX: number;
 }
 
 function isIEBehavior(behavior: BehaviorDefinition): boolean {
@@ -167,6 +169,7 @@ export class Mascot {
     const visualTop = this.state.y - this.state.anchorY;
     return {
       id: this.id,
+      positionX: this.state.x,
       x: visualLeft + (spriteWidth - width) / 2,
       y: visualTop + spriteHeight - height,
       width,
@@ -258,19 +261,41 @@ export class Mascot {
     const sweptLeft = Math.min(previousBox.x, currentBox.x) - (movingRight ? 0 : MASCOT_COLLISION_LOOKAHEAD);
     const sweptRight = Math.max(previousBox.x + previousBox.width, currentBox.x + currentBox.width)
       + (movingRight ? MASCOT_COLLISION_LOOKAHEAD : 0);
-    const previousCenterX = previousBox.x + previousBox.width / 2;
+
+    const overlappingSiblings = siblings.filter((sibling) => {
+      if (sibling.id === this.id) return false;
+      const overlapsVertically = currentBox.y < sibling.y + sibling.height
+        && sibling.y < currentBox.y + currentBox.height;
+      const overlapsHorizontally = previousBox.x < sibling.x + sibling.width
+        && sibling.x < previousBox.x + previousBox.width;
+      return overlapsVertically && (overlapsHorizontally || sibling.positionX === previous.x);
+    });
+    if (overlappingSiblings.length > 0) {
+      const coincidentIds = [
+        this.id,
+        ...overlappingSiblings
+          .filter((sibling) => sibling.positionX === previous.x)
+          .map((sibling) => sibling.id),
+      ].sort();
+      const escapeRight = coincidentIds.length > 1
+        ? coincidentIds.indexOf(this.id) >= coincidentIds.length / 2
+        : overlappingSiblings.reduce((sum, sibling) => sum + sibling.positionX, 0)
+          / overlappingSiblings.length < previous.x;
+      if (movingRight !== escapeRight) {
+        this.state.x = previous.x;
+        this.state.vx = 0;
+        this.state.lookRight = !this.state.lookRight;
+      }
+      return;
+    }
 
     const collision = siblings.some((sibling) => {
       if (sibling.id === this.id) return false;
-      const siblingCenterX = sibling.x + sibling.width / 2;
-      const isAhead = movingRight ? siblingCenterX >= previousCenterX : siblingCenterX <= previousCenterX;
+      const isAhead = movingRight ? sibling.positionX > previous.x : sibling.positionX < previous.x;
       const overlapsVertically = currentBox.y < sibling.y + sibling.height
         && sibling.y < currentBox.y + currentBox.height;
       const crossesHorizontally = sweptLeft <= sibling.x + sibling.width && sibling.x <= sweptRight;
-      // Skip collision when already overlapping — avoid infinite flip-flop on spawn
-      const wasAlreadyOverlapping = overlapsVertically
-        && previousBox.x < sibling.x + sibling.width && sibling.x < previousBox.x + previousBox.width;
-      return isAhead && overlapsVertically && crossesHorizontally && !wasAlreadyOverlapping;
+      return isAhead && overlapsVertically && crossesHorizontally;
     });
     if (!collision) return;
 
