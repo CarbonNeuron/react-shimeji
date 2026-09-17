@@ -121,6 +121,27 @@ describe("Shimeji-ee action semantics", () => {
     expect(movePlatform).toHaveBeenCalledWith(platform.element, { x: 101, y: 201 });
   });
 
+  it("keeps WalkWithIE attached across the full sub-pixel DOM range", () => {
+    const platform = { element: document.createElement("div"), x: 100.9999995, y: 280.9999995, width: 100, height: 20 };
+    const mascot = state({ x: 165, y: 300, lookRight: true });
+    const movePlatform = vi.fn();
+    const action = new ActionExecutor({
+      id: "test",
+      spritesheet: "",
+      sprites: {},
+      behaviors: [],
+      actions: [{
+        type: "Embedded", name: "Test", embedType: "WalkWithIE", borderType: "Floor",
+        targetX: 250, ieOffsetX: 64, ieOffsetY: 0, animations: [{ poses: [pose(10, -1)] }],
+      }],
+    }, mascot, { frameDuration: 40, gravity: 2, random: () => 0 }, { spawn() {}, remove() {}, movePlatform });
+
+    action.start("Test", environment(mascot, platform), false, bounds, [platform]);
+
+    expect(action.step(environment(mascot, platform), bounds, [platform])).toBe("running");
+    expect(movePlatform).toHaveBeenCalledWith(platform.element, { x: 102, y: 280 });
+  });
+
   it("exposes updated Fall velocity variables to animation conditions", () => {
     const mascot = state({ x: 150, y: 100 });
     const action = executor({

@@ -106,9 +106,13 @@ export class ShimejiEngine {
     if (!spec) throw new Error(`Character '${characterId}' is not registered`);
     const { bounds, platforms } = this.readFrameGeometry();
     const random = this.options.random ?? Math.random;
+    const randomX = Math.trunc(bounds.x + random() * bounds.width);
+    const spawnInset = Math.min(2, bounds.width / 2);
     const spawnOptions: SpawnOptions = {
       ...position,
-      x: position.x ?? Math.trunc(bounds.x + random() * bounds.width),
+      // Fall treats the wall in the facing direction as ground. Keep implicit
+      // spawns clear of both side-wall tolerances so even random() === 0 falls.
+      x: position.x ?? Math.min(Math.max(randomX, bounds.x + spawnInset), bounds.x + bounds.width - spawnInset),
       y: position.y ?? bounds.y + 2,
     };
     const id = `shimeji-${this.nextMascotId++}`;

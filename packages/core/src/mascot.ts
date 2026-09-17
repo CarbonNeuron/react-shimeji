@@ -66,6 +66,7 @@ export class Mascot {
   private accumulatedMs = 0;
   private readonly frameDuration: number;
   private readonly random: () => number;
+  private readonly forceInitialFall: boolean;
 
   /** Creates a mascot and immediately installs its pointer handlers. */
   public constructor(
@@ -94,6 +95,7 @@ export class Mascot {
     this.domHandle = dom.createMascot(spec, id, options.mascotClassName || undefined);
     this.frameDuration = options.frameDuration;
     this.random = options.random ?? Math.random;
+    this.forceInitialFall = spawnOptions.behaviorName === undefined;
     this.behavior = new BehaviorController(spec, options.random);
     this.actions = new ActionExecutor(spec, this.state, options, {
       spawn: (position, characterId) => this.callbacks.spawn(characterId ?? this.spec.id, position),
@@ -145,7 +147,9 @@ export class Mascot {
       const environment = this.createEnvironment(bounds, platforms);
       if (!this.currentBehavior) {
         this.currentBehavior = initial
-          ? this.behavior.selectInitial(environment, this.state.behaviorName)
+          ? this.forceInitialFall
+            ? this.findFallBehavior() ?? this.behavior.selectInitial(environment)
+            : this.behavior.selectInitial(environment, this.state.behaviorName)
           : this.selectNextBehavior(environment, bounds);
         initial = false;
         if (!this.currentBehavior) this.currentBehavior = this.findFallBehavior();

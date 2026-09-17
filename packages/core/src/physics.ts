@@ -1,10 +1,15 @@
 import type { MascotState, Point, Rectangle } from "./types";
 
 // Mascot anchors and evaluated action targets use truncated legacy pixels,
-// while DOMRect edges may lie anywhere between CSS pixels. A tolerance just
-// below one pixel bridges that quantization gap without claiming the adjacent
-// pixel of an integer-aligned border.
-const BORDER_TOLERANCE = 0.999999;
+// while DOMRect edges may lie anywhere between CSS pixels. Any distance below
+// one pixel is therefore the same legacy coordinate; an exact adjacent pixel
+// remains distinct.
+const BORDER_TOLERANCE = 1 - Number.EPSILON / 2;
+
+function isWithinSpan(value: number, minimum: number, maximum: number, tolerance: number): boolean {
+  const distance = value < minimum ? minimum - value : value > maximum ? value - maximum : 0;
+  return distance <= tolerance;
+}
 
 /** Clamps a number to an inclusive range. */
 export function clamp(value: number, minimum: number, maximum: number): number {
@@ -13,22 +18,22 @@ export function clamp(value: number, minimum: number, maximum: number): number {
 
 /** Returns whether a point lies on the top edge of a rectangle. */
 export function isOnTop(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
-  return point.x >= rectangle.x - tolerance && point.x <= rectangle.x + rectangle.width + tolerance && Math.abs(point.y - rectangle.y) <= tolerance;
+  return isWithinSpan(point.x, rectangle.x, rectangle.x + rectangle.width, tolerance) && Math.abs(point.y - rectangle.y) <= tolerance;
 }
 
 /** Returns whether a point lies on the bottom edge of a rectangle. */
 export function isOnBottom(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
-  return point.x >= rectangle.x - tolerance && point.x <= rectangle.x + rectangle.width + tolerance && Math.abs(point.y - rectangle.y - rectangle.height) <= tolerance;
+  return isWithinSpan(point.x, rectangle.x, rectangle.x + rectangle.width, tolerance) && Math.abs(point.y - rectangle.y - rectangle.height) <= tolerance;
 }
 
 /** Returns whether a point lies on the left edge of a rectangle. */
 export function isOnLeft(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
-  return point.y >= rectangle.y - tolerance && point.y <= rectangle.y + rectangle.height + tolerance && Math.abs(point.x - rectangle.x) <= tolerance;
+  return isWithinSpan(point.y, rectangle.y, rectangle.y + rectangle.height, tolerance) && Math.abs(point.x - rectangle.x) <= tolerance;
 }
 
 /** Returns whether a point lies on the right edge of a rectangle. */
 export function isOnRight(point: Point, rectangle: Rectangle, tolerance = BORDER_TOLERANCE): boolean {
-  return point.y >= rectangle.y - tolerance && point.y <= rectangle.y + rectangle.height + tolerance && Math.abs(point.x - rectangle.x - rectangle.width) <= tolerance;
+  return isWithinSpan(point.y, rectangle.y, rectangle.y + rectangle.height, tolerance) && Math.abs(point.x - rectangle.x - rectangle.width) <= tolerance;
 }
 
 /** Returns whether an anchor satisfies an action's boundary requirement. */

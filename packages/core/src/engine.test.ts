@@ -84,6 +84,52 @@ describe("ShimejiEngine lifecycle", () => {
     engine.destroy();
   });
 
+  it("keeps an implicit spawn clear of the side wall and falling", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { random: () => 0 });
+    engine.registerCharacter(spec);
+
+    engine.spawn("test");
+    expect(engine.getState()[0]).toMatchObject({ x: 2, y: 2, behaviorName: "Fall" });
+
+    frame?.(40);
+
+    expect(engine.getState()[0]).toMatchObject({ x: 2, y: 22, behaviorName: "Fall" });
+    for (let timestamp = 80; timestamp <= 800; timestamp += 40) frame?.(timestamp);
+    expect(engine.getState()[0]).toMatchObject({ x: 2, y: 300 });
+    engine.destroy();
+  });
+
+  it("forces the localized Fall behavior for an implicit spawn", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { random: () => 0.5 });
+    engine.registerCharacter({
+      ...spec,
+      actions: [{ ...spec.actions[0]!, name: "落下する" }],
+      behaviors: [behavior("Stand"), { ...behavior("落下する"), frequency: 0 }],
+    });
+
+    engine.spawn("test");
+    frame?.(40);
+
+    expect(engine.getState()[0]).toMatchObject({ y: 22, behaviorName: "落下する" });
+    engine.destroy();
+  });
+
   it("mirrors non-centered image anchors like Shimeji-ee", () => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -131,7 +177,7 @@ describe("ShimejiEngine lifecycle", () => {
     const platform = document.createElement("div");
     platform.dataset.shimejiPlatform = "";
     vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
-      left: 100.75, top: 200.75, width: 200, height: 40,
+      left: 100.9999995, top: 200.9999995, width: 200, height: 40,
     } as DOMRect);
     const host = document.createElement("div");
     host.append(platform);
