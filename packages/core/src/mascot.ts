@@ -41,6 +41,7 @@ function environmentRectangle(bounds: Rectangle): EnvironmentRectangle {
 }
 
 const PLATFORM_NEARBY_DISTANCE = 400;
+const PLATFORM_EDGE_TOLERANCE = 2;
 function distanceToRectangle(point: Point, rectangle: Rectangle): number {
   const dx = Math.max(rectangle.x - point.x, 0, point.x - rectangle.x - rectangle.width);
   const dy = Math.max(rectangle.y - point.y, 0, point.y - rectangle.y - rectangle.height);
@@ -170,7 +171,7 @@ export class Mascot {
     if (result === "lost-ground") {
       this.state.dragging = false;
       this.actions.cancel();
-      this.currentBehavior = this.findFallBehavior();
+      this.currentBehavior = this.selectEdgeBehavior(bounds, platforms);
       if (this.currentBehavior) this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms);
     } else if (result === "complete") {
       this.currentBehavior = this.selectNextBehavior(this.createEnvironment(bounds, platforms), bounds);
@@ -199,13 +200,38 @@ export class Mascot {
     return this.behavior.force("Fall") ?? this.behavior.force("落下する");
   }
 
-  private selectNextBehavior(environment: MascotEnvironment, bounds: Rectangle): BehaviorDefinition | undefined {
+  private selectNextBehavior(environment: MascotEnvironment, bounds: Rectangle, relocateOnFallback = true): BehaviorDefinition | undefined {
     const selected = this.behavior.selectNext(environment);
-    if (this.behavior.usedFallback()) {
+    if (relocateOnFallback && this.behavior.usedFallback()) {
       this.state.x = Math.trunc(bounds.x + this.random() * bounds.width);
       this.state.y = bounds.y - 256;
     }
     return selected;
+  }
+
+  private selectEdgeBehavior(bounds: Rectangle, platforms: readonly PlatformRectangle[]): BehaviorDefinition | undefined {
+    const original = { x: this.state.x, y: this.state.y };
+    const platform = platforms.find((candidate) => candidate.element === this.activePlatformElement);
+    if (platform) {
+      const left = platform.x;
+      const right = platform.x + platform.width;
+      const top = platform.y;
+      const bottom = platform.y + platform.height;
+      if (Math.abs(this.state.y - top) <= PLATFORM_EDGE_TOLERANCE || Math.abs(this.state.y - bottom) <= PLATFORM_EDGE_TOLERANCE) {
+        if (this.state.x < left) this.state.x = left;
+        else if (this.state.x > right) this.state.x = right;
+      } else if (Math.abs(this.state.x - left) <= PLATFORM_EDGE_TOLERANCE || Math.abs(this.state.x - right) <= PLATFORM_EDGE_TOLERANCE) {
+        if (this.state.y < top) this.state.y = top;
+        else if (this.state.y > bottom) this.state.y = bottom;
+      }
+    }
+
+    const selected = this.selectNextBehavior(this.createEnvironment(bounds, platforms), bounds, false);
+    if (this.behavior.usedFallback() || selected?.name === "Fall" || selected?.name === "落下する") {
+      this.state.x = original.x;
+      this.state.y = original.y;
+    }
+    return selected ?? this.findFallBehavior();
   }
 
   private createEnvironment(bounds: Rectangle, platforms: readonly PlatformRectangle[] = this.platforms): MascotEnvironment {
@@ -242,10 +268,10 @@ export class Mascot {
     const anchor = this.state;
     const current = platforms.find((platform) => platform.element === this.activePlatformElement);
     if (current && (
-      isOnTop(anchor, current, 2)
-      || isOnBottom(anchor, current, 2)
-      || isOnLeft(anchor, current, 2)
-      || isOnRight(anchor, current, 2)
+      isOnTop(anchor, current, PLATFORM_EDGE_TOLERANCE)
+      || isOnBottom(anchor, current, PLATFORM_EDGE_TOLERANCE)
+      || isOnLeft(anchor, current, PLATFORM_EDGE_TOLERANCE)
+      || isOnRight(anchor, current, PLATFORM_EDGE_TOLERANCE)
     )) return current;
 
     if (this.state.vy >= 0) {

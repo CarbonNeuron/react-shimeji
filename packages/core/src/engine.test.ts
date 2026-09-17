@@ -341,6 +341,46 @@ describe("ShimejiEngine lifecycle", () => {
     engine.destroy();
   });
 
+  it("selects an IE wall behavior when a mascot crosses a platform edge", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const platform = document.createElement("div");
+    vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
+      left: 100, top: 200, width: 200, height: 40,
+    } as DOMRect);
+    const host = document.createElement("div");
+    host.append(platform);
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { platforms: [platform], random: () => 0 });
+    engine.registerCharacter({
+      ...spec,
+      actions: [
+        ...spec.actions,
+        animatedAction("Walk", { x: 24, y: 0 }),
+        animatedAction("ClimbIEWall", { x: 0, y: 8 }, "Wall"),
+      ],
+      behaviors: [
+        { ...spec.behaviors[0]!, frequency: 0 },
+        { ...behavior("Walk"), frequency: 0 },
+        {
+          ...behavior("ClimbIEWall"),
+          conditions: ["#{mascot.lookRight ? mascot.environment.activeIE.leftBorder.isOn(mascot.anchor) : mascot.environment.activeIE.rightBorder.isOn(mascot.anchor)}"],
+        },
+      ],
+    });
+    engine.spawn("test", { x: 295, y: 200, lookRight: false, behaviorName: "Walk" });
+
+    frame?.(40);
+    expect(engine.getState()[0]).toMatchObject({ x: 319, y: 200, behaviorName: "Walk" });
+
+    frame?.(80);
+    expect(engine.getState()[0]).toMatchObject({ x: 300, y: 200, behaviorName: "ClimbIEWall" });
+
+    frame?.(120);
+    expect(engine.getState()[0]).toMatchObject({ x: 300, y: 208, behaviorName: "ClimbIEWall" });
+    engine.destroy();
+  });
+
   it("does not invent a border for an unbordered animation", () => {
     let frame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
