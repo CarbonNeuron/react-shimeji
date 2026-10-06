@@ -130,7 +130,7 @@ export class Mascot {
     if (this.destroyed) return;
     this.platforms = platforms;
     try {
-      this.ensureBehavior(bounds, platforms, true);
+      if (this.pointerId === undefined) this.ensureBehavior(bounds, platforms, true);
       this.accumulatedMs += Math.max(0, deltaMs);
       while (this.accumulatedMs >= this.frameDuration && !this.destroyed) {
         this.accumulatedMs -= this.frameDuration;
@@ -188,6 +188,20 @@ export class Mascot {
     bounds: Rectangle,
     platforms: readonly PlatformRectangle[],
   ): void {
+    if (this.pointerId !== undefined) {
+      if (this.currentBehavior) {
+        const result = this.actions.step(this.createEnvironment(bounds, platforms), bounds, platforms);
+        if (result !== "running") this.startBehavior(this.createEnvironment(bounds, platforms), bounds, platforms);
+      }
+      // Drag actions may animate the sprite, but the active pointer owns its position.
+      // Keep the original grab offset so a finger or mouse never snaps the mascot.
+      if (this.lastPointer) {
+        this.state.x = this.lastPointer.x + this.dragOffset.x;
+        this.state.y = this.lastPointer.y + this.dragOffset.y;
+      }
+      this.state.dragging = true;
+      return;
+    }
     this.ensureBehavior(bounds, platforms, false);
     if (!this.currentBehavior) return;
     const previous = { x: this.state.x, y: this.state.y };
@@ -280,7 +294,9 @@ export class Mascot {
         anchor: { x: this.state.x, y: this.state.y },
         lookRight: this.state.lookRight,
         environment: {
-          cursor: this.callbacks.pointer(),
+          cursor: this.pointerId === undefined || !this.lastPointer
+            ? this.callbacks.pointer()
+            : { ...this.callbacks.pointer(), ...this.lastPointer },
           screen: workArea,
           workArea,
           floor: edge((point) => isOnFloor(point, bounds, platforms)),
@@ -332,7 +348,7 @@ export class Mascot {
     };
     listen(element, "pointerdown", (event) => {
       const pointerEvent = event as PointerEvent;
-      if (pointerEvent.button !== 0) return;
+      if (pointerEvent.button !== 0 || this.pointerId !== undefined) return;
       event.preventDefault();
       const point = this.dom.toLocalPoint(pointerEvent.clientX, pointerEvent.clientY);
       this.pointerId = pointerEvent.pointerId;
@@ -342,32 +358,51 @@ export class Mascot {
       this.state.dragging = true;
       this.currentBehavior = this.behavior.force("Dragged") ?? this.behavior.force("ドラッグされる");
       if (this.currentBehavior) this.startBehavior(this.createEnvironment(this.dom.getBounds()), this.dom.getBounds(), this.platforms);
+      else this.actions.cancel();
       element.setPointerCapture?.(pointerEvent.pointerId);
     });
     listen(document, "pointermove", (event) => {
       const pointerEvent = event as PointerEvent;
-      if (!this.state.dragging || pointerEvent.pointerId !== this.pointerId) return;
-      const point = this.dom.toLocalPoint(pointerEvent.clientX, pointerEvent.clientY);
-      const previous = this.lastPointer ?? point;
-      const bounds = this.dom.getBounds();
-      this.state.vx = (point.x - previous.x) * 0.8;
-      this.state.vy = (point.y - previous.y) * 0.8;
-      this.state.x = point.x + this.dragOffset.x;
-      this.state.y = point.y + this.dragOffset.y;
-      this.lastPointer = point;
+      if (pointerEvent.pointerId !== this.pointerId) return;
+      this.moveWithPointer(pointerEvent);
     });
     listen(document, "pointerup", (event) => {
       const pointerEvent = event as PointerEvent;
-      if (!this.state.dragging || pointerEvent.pointerId !== this.pointerId) return;
-      this.state.dragging = false;
-      const moved = this.pointerDown ? Math.hypot(this.lastPointer!.x - this.pointerDown.x, this.lastPointer!.y - this.pointerDown.y) : 0;
-      this.pointerId = undefined;
-      this.currentBehavior = this.behavior.force("Thrown") ?? this.behavior.force("投げられる") ?? this.findFallBehavior();
-      if (this.currentBehavior) {
-        const bounds = this.dom.getBounds();
-        this.startBehavior(this.createEnvironment(bounds), bounds, this.platforms);
-      }
-      if (moved < 4) this.callbacks.click(this.snapshot());
+      if (pointerEvent.pointerId !== this.pointerId) return;
+      this.moveWithPointer(pointerEvent);
+      this.finishDrag(true);
     });
+    listen(document, "pointercancel", (event) => {
+      if ((event as PointerEvent).pointerId === this.pointerId) this.finishDrag(false);
+    });
+    listen(element, "lostpointercapture", (event) => {
+      if ((event as PointerEvent).pointerId === this.pointerId) this.finishDrag(false);
+    });
+  }
+
+  private moveWithPointer(event: PointerEvent): void {
+    const point = this.dom.toLocalPoint(event.clientX, event.clientY);
+    const previous = this.lastPointer ?? point;
+    this.state.vx = (point.x - previous.x) * 0.8;
+    this.state.vy = (point.y - previous.y) * 0.8;
+    this.state.x = point.x + this.dragOffset.x;
+    this.state.y = point.y + this.dragOffset.y;
+    this.lastPointer = point;
+  }
+
+  private finishDrag(reportClick: boolean): void {
+    const moved = this.pointerDown && this.lastPointer
+      ? Math.hypot(this.lastPointer.x - this.pointerDown.x, this.lastPointer.y - this.pointerDown.y)
+      : 0;
+    this.state.dragging = false;
+    this.pointerId = undefined;
+    this.pointerDown = undefined;
+    this.lastPointer = undefined;
+    this.currentBehavior = this.behavior.force("Thrown") ?? this.behavior.force("投げられる") ?? this.findFallBehavior();
+    if (this.currentBehavior) {
+      const bounds = this.dom.getBounds();
+      this.startBehavior(this.createEnvironment(bounds), bounds, this.platforms);
+    } else this.actions.cancel();
+    if (reportClick && moved < 4) this.callbacks.click(this.snapshot());
   }
 }

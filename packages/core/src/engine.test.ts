@@ -32,6 +32,15 @@ function withBehavior(name: string, action: ActionDefinition): CharacterSpec {
   return { ...spec, actions: [...spec.actions, action], behaviors: [...spec.behaviors, behavior(name)] };
 }
 
+function dispatchPointer(target: EventTarget, type: string, pointerId: number, clientX: number, clientY: number): void {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX, clientY });
+  Object.defineProperties(event, {
+    pointerId: { value: pointerId },
+    pointerType: { value: "touch" },
+  });
+  target.dispatchEvent(event);
+}
+
 describe("ShimejiEngine lifecycle", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -69,6 +78,56 @@ describe("ShimejiEngine lifecycle", () => {
     expect(engine.isDestroyed()).toBe(true);
     expect(host.style.position).toBe("");
     expect(host.style.overflow).toBe("");
+  });
+
+  it("drags by touch without snapping to the drag action offset, then falls from the release point", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const host = document.createElement("div");
+    Object.defineProperties(host, {
+      clientWidth: { configurable: true, value: 400 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    vi.spyOn(host, "getBoundingClientRect").mockReturnValue({ left: 40, top: 20, width: 400, height: 300 } as DOMRect);
+    document.body.append(host);
+    const engine = new ShimejiEngine(host);
+    engine.registerCharacter(withBehavior("Dragged", {
+      type: "Embedded", name: "Dragged", embedType: "Dragged", offsetY: 120,
+      animations: [{ poses: [{ sprite: "/shime1.png", anchor: { x: 16, y: 32 }, velocity: { x: 0, y: 0 }, duration: 1 }] }],
+    }));
+    const id = engine.spawn("test", { x: 150, y: 300 });
+    const sprite = host.querySelector<HTMLElement>(`[data-shimeji-id="${id}"] > div`)!;
+    expect(sprite.style.touchAction).toBe("none");
+
+    dispatchPointer(sprite, "pointerdown", 7, 185, 295);
+    dispatchPointer(document, "pointermove", 8, 285, 170);
+    expect(engine.getState()[0]).toMatchObject({ x: 150, y: 300, dragging: true });
+    dispatchPointer(document, "pointermove", 7, 285, 170);
+    frame?.(40);
+    expect(engine.getState()[0]).toMatchObject({ x: 250, y: 175, dragging: true });
+
+    dispatchPointer(document, "pointerup", 7, 305, 180);
+    expect(engine.getState()[0]).toMatchObject({ x: 270, y: 185, dragging: false, behaviorName: "Fall" });
+    frame?.(80);
+    expect(engine.getState()[0]?.y).toBeGreaterThan(185);
+    engine.destroy();
+  });
+
+  it("releases a canceled touch so the mascot can be grabbed again", () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const engine = new ShimejiEngine(host);
+    engine.registerCharacter(spec);
+    const id = engine.spawn("test", { x: 100, y: 100 });
+    const sprite = host.querySelector<HTMLElement>(`[data-shimeji-id="${id}"] > div`)!;
+
+    dispatchPointer(sprite, "pointerdown", 1, 100, 100);
+    dispatchPointer(document, "pointercancel", 1, 100, 100);
+    expect(engine.getState()[0]?.dragging).toBe(false);
+    dispatchPointer(sprite, "pointerdown", 2, 100, 100);
+    dispatchPointer(document, "pointermove", 2, 140, 120);
+    expect(engine.getState()[0]).toMatchObject({ x: 140, y: 120, dragging: true });
+    engine.destroy();
   });
 
   it("spawns within the container dimensions when coordinates are omitted", () => {
