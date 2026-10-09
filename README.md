@@ -9,6 +9,20 @@ Ships as two packages:
 
 Both publish ESM, CommonJS, source maps, and full TypeScript declarations.
 
+## Character CDN
+
+`createCharacterCdn(baseUrl)` loads the catalog and individual character packs from a static HTTP service. The bundled CDN image is published as `ghcr.io/carbonneuron/react-shimeji-cdn`; it exposes `GET /index.json`, `GET /characters/{id}.json`, and `GET /healthz` on port 80. Its files are generated from all 2,665 character packages, including Git LFS sprite data. Only requested packs are transferred to a browser.
+
+```ts
+import { createCharacterCdn } from "@react-shimeji/core";
+
+const cdn = createCharacterCdn("https://shimeji-cdn.harbor.psd202.org/");
+const catalog = await cdn.list();
+const character = await cdn.load(catalog[0].id);
+```
+
+The CDN URL can point to any server that serves the same static file layout. The `Build character CDN image` workflow publishes the image to GHCR. Normal pushes to `main` publish only the core and React npm packages; publishing every character package is an explicit manual workflow option.
+
 ## Features
 
 - 🎭 **Full behavior engine** — weighted behavior selection, action trees (sequence, select, reference, embedded), physics, gravity, boundary awareness, dragging

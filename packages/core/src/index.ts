@@ -2,6 +2,9 @@
 export { ShimejiEngine } from "./engine";
 /** Character loading and legacy XML parsing utilities. */
 export { loadCharacter, normalizeCharacterSpec, parseActionsXml, parseBehaviorsXml } from "./loader";
+/** Static CDN catalog and pack loader. */
+export { createCharacterCdn } from "./cdn";
+export type { CharacterCdn, CharacterCdnEntry } from "./cdn";
 /** Behavior selection and safe expression utilities. */
 export { BehaviorController, conditionsMatch, evaluateExpression, selectWeighted } from "./behavior";
 /** Low-level action-tree executor. */

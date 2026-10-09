@@ -107,9 +107,11 @@ const dirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
   .filter((d) => d.isDirectory())
   .map((d) => d.name);
 
+const runtimeOnly = process.env.PUBLISH_RUNTIME_ONLY === "true";
 const packages: PkgMeta[] = dirs
   .map((d) => loadPackage(d))
-  .filter((p): p is PkgMeta => p !== null);
+  .filter((p): p is PkgMeta => p !== null)
+  .filter((pkg) => !runtimeOnly || pkg.name === "@react-shimeji/core" || pkg.name === "@react-shimeji/react");
 
 // Sort into publish order: core first, react second, character-* next, characters (umbrella) last
 const order = (pkg: PkgMeta): number => {

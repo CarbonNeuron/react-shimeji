@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_all:
+        description: Publish character packages as well as core and React
+        type: boolean
+        default: false
 
 concurrency:
   group: publish
@@ -17,8 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true
-          fetch-depth: 0
+          lfs: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_all }}
+          fetch-depth: 1
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -39,3 +44,4 @@ jobs:
         run: bun run scripts/publish.ts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PUBLISH_RUNTIME_ONLY: ${{ github.event_name != 'workflow_dispatch' || !inputs.publish_all }}

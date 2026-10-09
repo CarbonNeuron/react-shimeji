@@ -1,0 +1,6 @@
+*
+!cdn/
+!cdn/Dockerfile
+!cdn/nginx.conf
+!scripts/
+!scripts/build-cdn.ts
