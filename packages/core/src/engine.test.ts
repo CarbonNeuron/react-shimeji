@@ -441,6 +441,42 @@ describe("ShimejiEngine lifecycle", () => {
     engine.destroy();
   });
 
+  it("lets a pack's weighted Fall behavior beat an IE wall behavior at a platform edge", () => {
+    let frame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));
+    const platform = document.createElement("div");
+    vi.spyOn(platform, "getBoundingClientRect").mockReturnValue({
+      left: 100, top: 200, width: 200, height: 40,
+    } as DOMRect);
+    const host = document.createElement("div");
+    host.append(platform);
+    document.body.append(host);
+    const engine = new ShimejiEngine(host, { platforms: [platform], random: () => 0.99 });
+    engine.registerCharacter({
+      ...spec,
+      actions: [
+        ...spec.actions,
+        animatedAction("Walk", { x: 24, y: 0 }),
+        animatedAction("ClimbIEWall", { x: 0, y: 8 }, "Wall"),
+      ],
+      behaviors: [
+        { ...spec.behaviors[0]!, frequency: 100 },
+        { ...behavior("Walk"), frequency: 0 },
+        {
+          ...behavior("ClimbIEWall"), frequency: 1,
+          conditions: ["#{mascot.environment.activeIE.rightBorder.isOn(mascot.anchor)}"],
+        },
+      ],
+    });
+    engine.spawn("test", { x: 295, y: 200, lookRight: false, behaviorName: "Walk" });
+
+    frame?.(40);
+    frame?.(80);
+
+    expect(engine.getState()[0]).toMatchObject({ x: 319, y: 200, behaviorName: "Fall" });
+    engine.destroy();
+  });
+
   it("rolls only among applicable IE behaviors before the full pool at a platform edge", () => {
     let frame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => { frame = callback; return 7; }));

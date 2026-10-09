@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { character as japaneseCharacterPackage } from "../../character-vocaloid-oliver/index";
 import { normalizeCharacterSpec, parseActionsXml, parseBehaviorsXml } from "./loader";
 
@@ -32,6 +32,29 @@ describe("legacy character loading", () => {
     expect(parsedBehaviors[2]).toMatchObject({ name: "Stand", frequency: 100, groupIndex: 1 });
     expect(parsedBehaviors[2]?.conditions).toHaveLength(1);
     expect(parsedBehaviors[2]?.nextBehaviors[0]).toMatchObject({ type: "Reference", name: "Stand" });
+  });
+
+  it("decodes XML operators when a server DOM parser leaves attribute entities intact", () => {
+    const NativeDOMParser = DOMParser;
+    vi.stubGlobal("DOMParser", class {
+      parseFromString(xml: string, type: DOMParserSupportedType): Document {
+        const document = new NativeDOMParser().parseFromString(xml, type);
+        for (const element of document.querySelectorAll("*")) {
+          const original = element.getAttribute.bind(element);
+          element.getAttribute = (name: string) => original(name)
+            ?.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;") ?? null;
+        }
+        return document;
+      }
+    });
+    try {
+      const parsed = parseBehaviorsXml(`<?xml version="1.0"?><Mascot xmlns="urn:test"><BehaviorList>
+        <Behavior Name="Jump" Frequency="1" Condition="#{mascot.anchor.x &gt;= 10 &amp;&amp; mascot.anchor.x &lt; 20}" />
+      </BehaviorList></Mascot>`);
+      expect(parsed[0]?.conditions).toEqual(["#{mascot.anchor.x >= 10 && mascot.anchor.x < 20}"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("normalizes the configuration.json bundle shape", () => {

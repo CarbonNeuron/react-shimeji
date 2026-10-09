@@ -269,7 +269,8 @@ export class Mascot {
     const environment = this.createEnvironment(bounds, platforms);
     const interruptedBehavior = this.currentBehavior;
     const selected = this.behavior.trySelectNext(environment, (candidate) => (
-      candidate.name !== interruptedBehavior?.name && isIEBehavior(candidate)
+      candidate.name !== interruptedBehavior?.name
+      && (isIEBehavior(candidate) || candidate.name === "Fall" || candidate.name === "落下する")
     ))
       ?? this.selectNextBehavior(environment, bounds, false);
     if (this.behavior.usedFallback() || selected?.name === "Fall" || selected?.name === "落下する") {

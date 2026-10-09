@@ -25,7 +25,24 @@ function parseJson<T>(value: T | string, label: string): T {
 }
 
 function attribute(element: Element, ...names: string[]): string | undefined {
-  for (const name of names) { const value = element.getAttribute(name); if (value !== null) return value; }
+  for (const name of names) {
+    const value = element.getAttribute(name);
+    if (value !== null) {
+      // Browser DOMParser decodes XML attributes, but some server DOM parsers
+      // leave entities intact. Expressions must see operators, not XML syntax.
+      return value.replace(/&(?:amp|lt|gt|quot|apos|#(?:x[0-9a-f]+|[0-9]+));/gi, (entity) => {
+        const named: Record<string, string> = {
+          "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&apos;": "'",
+        };
+        const replacement = named[entity.toLowerCase()];
+        if (replacement !== undefined) return replacement;
+        const hexadecimal = entity[2]?.toLowerCase() === "x";
+        const codePoint = Number.parseInt(entity.slice(hexadecimal ? 3 : 2, -1), hexadecimal ? 16 : 10);
+        return Number.isFinite(codePoint) && codePoint <= 0x10ffff && !(codePoint >= 0xd800 && codePoint <= 0xdfff)
+          ? String.fromCodePoint(codePoint) : entity;
+      });
+    }
+  }
   return undefined;
 }
 
