@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-nene-fnf-6f278e",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: NENE FNF",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "nene-fnf-6f278e",
+    "NENE FNF"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-nene-fnf-6f278e"
+  }
+}

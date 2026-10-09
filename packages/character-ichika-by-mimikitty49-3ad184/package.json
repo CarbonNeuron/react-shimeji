@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-ichika-by-mimikitty49-3ad184",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Ichika By Mimikitty49",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "ichika-by-mimikitty49-3ad184",
+    "Ichika By Mimikitty49"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-ichika-by-mimikitty49-3ad184"
+  }
+}

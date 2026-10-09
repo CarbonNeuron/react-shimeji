@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-noir-pomni-tadc-79be38",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Noir!Pomni (TADC)",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "noir-pomni-tadc-79be38",
+    "Noir!Pomni (TADC)"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-noir-pomni-tadc-79be38"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-sakura-haruno-0e46fd",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Sakura Haruno",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "sakura-haruno-0e46fd",
+    "Sakura Haruno"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-sakura-haruno-0e46fd"
+  }
+}

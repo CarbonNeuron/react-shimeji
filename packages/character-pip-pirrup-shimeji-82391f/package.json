@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-pip-pirrup-shimeji-82391f",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Pip Pirrup Shimeji",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "pip-pirrup-shimeji-82391f",
+    "Pip Pirrup Shimeji"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-pip-pirrup-shimeji-82391f"
+  }
+}

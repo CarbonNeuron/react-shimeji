@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-chung-myung-shimeji-9edd2a",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Chung Myung Shimeji",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "chung-myung-shimeji-9edd2a",
+    "Chung Myung Shimeji"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-chung-myung-shimeji-9edd2a"
+  }
+}

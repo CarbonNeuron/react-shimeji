@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-h4ck3er-46847a",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: H4CK3ER",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "h4ck3er-46847a",
+    "H4CK3ER"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-h4ck3er-46847a"
+  }
+}

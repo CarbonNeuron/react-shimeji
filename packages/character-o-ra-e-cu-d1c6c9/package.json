@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-o-ra-e-cu-d1c6c9",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: đô ra e cu",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "o-ra-e-cu-d1c6c9",
+    "đô ra e cu"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-o-ra-e-cu-d1c6c9"
+  }
+}

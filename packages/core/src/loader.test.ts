@@ -18,6 +18,27 @@ const behaviors = `<?xml version="1.0"?><Mascot xmlns="urn:test"><BehaviorList>
 </BehaviorList></Mascot>`;
 
 describe("legacy character loading", () => {
+  it("parses community packs with Actions and Behaviors list names", () => {
+    const parsedActions = parseActionsXml(`<Mascot><Actions><Action Name="Stand" Type="Stay" /></Actions></Mascot>`);
+    const parsedBehaviors = parseBehaviorsXml(`<Mascot><Behaviors><Behavior Name="Stand" Frequency="1" /></Behaviors></Mascot>`);
+    expect(parsedActions.map((action) => action.name)).toEqual(["Stand"]);
+    expect(parsedBehaviors.map((behavior) => behavior.name)).toEqual(["Stand"]);
+  });
+
+  it("reads behaviors inside a mislabeled ActionList", () => {
+    const parsed = parseBehaviorsXml(`<Mascot><ActionList><Behavior Name="Stand" Frequency="1" /></ActionList></Mascot>`);
+    expect(parsed.map((behavior) => behavior.name)).toEqual(["Stand"]);
+  });
+
+  it("uses a Stand action when a community pack has no behavior entries", () => {
+    const spec = normalizeCharacterSpec({
+      id: "missing-behaviors", spritesheet: "data:image/png;base64,AA==", sprites: {},
+      actions: `<Mascot><ActionList><Action Name="Stand" Type="Stay" /></ActionList></Mascot>`,
+      behaviors: `<Mascot><ActionList><Action Name="Stand" Type="Stay" /></ActionList></Mascot>`,
+    });
+    expect(spec.behaviors).toMatchObject([{ name: "Stand", actionName: "Stand", frequency: 1 }]);
+  });
+
   it("parses XML action trees and behavior condition groups", () => {
     const parsedActions = parseActionsXml(actions);
     const parsedBehaviors = parseBehaviorsXml(behaviors);

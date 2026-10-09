@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-player-2006-desktop-mascot-d17fe5",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Player 2006 Desktop Mascot",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "player-2006-desktop-mascot-d17fe5",
+    "Player 2006 Desktop Mascot"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-player-2006-desktop-mascot-d17fe5"
+  }
+}

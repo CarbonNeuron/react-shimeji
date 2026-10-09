@@ -127,7 +127,8 @@ function parseActionElement(element: Element): ActionDefinition {
 /** Parses a legacy `actions.xml` document into normalized action definitions. */
 export function parseActionsXml(xml: string): ActionDefinition[] {
   const document = parseDocument(xml, "actions.xml");
-  const lists = Array.from(document.getElementsByTagNameNS("*", "ActionList")).concat(Array.from(document.getElementsByTagNameNS("*", "動作リスト")));
+  const lists = ["ActionList", "動作リスト", "Actions"]
+    .flatMap((name) => Array.from(document.getElementsByTagNameNS("*", name)));
   const roots = lists.length ? lists : [document.documentElement];
   return roots.flatMap((list) => directChildren(list, "Action", "動作").map(parseActionElement));
 }
@@ -168,8 +169,11 @@ function parseBehaviorElement(element: Element, inheritedConditions: readonly st
 /** Parses a legacy `behaviors.xml` document into normalized behavior definitions. */
 export function parseBehaviorsXml(xml: string): BehaviorDefinition[] {
   const document = parseDocument(xml, "behaviors.xml");
-  const lists = Array.from(document.getElementsByTagNameNS("*", "BehaviorList")).concat(Array.from(document.getElementsByTagNameNS("*", "行動リスト")));
-  const root = lists[0] ?? document.documentElement;
+  const lists = ["BehaviorList", "行動リスト", "Behaviors", "ActionList"]
+    .flatMap((name) => Array.from(document.getElementsByTagNameNS("*", name)));
+  const root = lists.find((list) => directChildren(list,
+    "Condition", "条件", "Behavior", "行動", "BehaviorReference", "BehaviorReferance", "行動参照",
+  ).length > 0) ?? document.documentElement;
   const behaviors: BehaviorDefinition[] = [];
   let groupIndex = 0;
   for (const child of Array.from(root.children)) {
@@ -208,7 +212,16 @@ export function normalizeCharacterSpec(input: CharacterSpec | LegacyCharacterPac
   if (!id) throw new TypeError("Character specification requires an id");
   if (pack.actions === undefined || pack.behaviors === undefined || pack.sprites === undefined || pack.spritesheet === undefined) throw new TypeError(`Character '${id}' is missing actions, behaviors, sprites, or spritesheet`);
   const actions = typeof pack.actions === "string" && pack.actions.trimStart().startsWith("<") ? parseActionsXml(pack.actions) : parseJson<ActionDefinition[]>(pack.actions, "actions");
-  const behaviors = typeof pack.behaviors === "string" && pack.behaviors.trimStart().startsWith("<") ? parseBehaviorsXml(pack.behaviors) : parseJson<BehaviorDefinition[]>(pack.behaviors, "behaviors");
+  const parsedBehaviors = typeof pack.behaviors === "string" && pack.behaviors.trimStart().startsWith("<") ? parseBehaviorsXml(pack.behaviors) : parseJson<BehaviorDefinition[]>(pack.behaviors, "behaviors");
+  // A few community packs ship an actions.xml file in both XML slots. Keep
+  // them animated with their Stand action when no behavior is defined.
+  const fallbackAction = parsedBehaviors.length === 0
+    ? actions.find((action) => action.name === "Stand") ?? actions.find((action) => action.name === "Fall") ?? actions.find((action) => action.name)
+    : undefined;
+  const behaviors: BehaviorDefinition[] = fallbackAction?.name
+    ? [{ type: "Behavior", name: fallbackAction.name, actionName: fallbackAction.name,
+      frequency: 1, conditions: [], nextBehaviors: [], groupIndex: 0, hidden: false }]
+    : parsedBehaviors;
   const sprites = parseJson<SpriteMap>(pack.sprites, "sprites");
   const spec: CharacterSpec = {
     id,

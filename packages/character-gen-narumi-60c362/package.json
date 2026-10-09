@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-gen-narumi-60c362",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Gen Narumi",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "gen-narumi-60c362",
+    "Gen Narumi"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-gen-narumi-60c362"
+  }
+}

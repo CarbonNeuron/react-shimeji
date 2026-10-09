@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-mini-kinitopet-stuff-cae35e",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Mini KinitoPet Stuff",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "mini-kinitopet-stuff-cae35e",
+    "Mini KinitoPet Stuff"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-mini-kinitopet-stuff-cae35e"
+  }
+}

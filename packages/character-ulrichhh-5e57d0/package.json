@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-ulrichhh-5e57d0",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: ULRICHHH",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "ulrichhh-5e57d0",
+    "ULRICHHH"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-ulrichhh-5e57d0"
+  }
+}

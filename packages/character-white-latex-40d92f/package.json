@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-white-latex-40d92f",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: White Latex",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "white-latex-40d92f",
+    "White Latex"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-white-latex-40d92f"
+  }
+}

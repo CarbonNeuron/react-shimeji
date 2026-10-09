@@ -11,7 +11,7 @@ Both publish ESM, CommonJS, source maps, and full TypeScript declarations.
 
 ## Character CDN
 
-`createCharacterCdn(baseUrl)` loads the catalog and individual character packs from a static HTTP service. The bundled CDN image is published as `ghcr.io/carbonneuron/react-shimeji-cdn`; it exposes `GET /index.json`, `GET /characters/{id}.json`, and `GET /healthz` on port 80. Its files are generated from all 2,665 character packages, including Git LFS sprite data. Only requested packs are transferred to a browser.
+`createCharacterCdn(baseUrl)` loads the catalog and individual character packs from a static HTTP service. The bundled CDN image is published as `ghcr.io/carbonneuron/react-shimeji-cdn`; it exposes `GET /index.json`, `GET /characters/{id}.json`, and `GET /healthz` on port 80. Its files are generated from the 2,224 deduplicated character packages, including Git LFS sprite data. Only requested packs are transferred to a browser.
 
 ```ts
 import { createCharacterCdn } from "@react-shimeji/core";

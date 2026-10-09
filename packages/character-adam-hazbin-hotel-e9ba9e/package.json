@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-adam-hazbin-hotel-e9ba9e",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: adam - Hazbin hotel",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "adam-hazbin-hotel-e9ba9e",
+    "adam - Hazbin hotel"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-adam-hazbin-hotel-e9ba9e"
+  }
+}

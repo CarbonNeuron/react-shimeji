@@ -1,0 +1,32 @@
+{
+  "name": "@react-shimeji/character-mystery-saja-0f02c5",
+  "version": "1.0.0",
+  "description": "Shimeji character pack: Mystery Saja",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "keywords": [
+    "shimeji",
+    "react-shimeji",
+    "character",
+    "mystery-saja-0f02c5",
+    "Mystery Saja"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-shimeji/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-shimeji/core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarbonNeuron/react-shimeji.git",
+    "directory": "packages/character-mystery-saja-0f02c5"
+  }
+}
