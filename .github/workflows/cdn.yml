@@ -2,13 +2,6 @@ name: Build character CDN image
 
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/touch-drag]
-    paths:
-      - cdn/**
-      - scripts/build-cdn.ts
-      - .dockerignore
-      - .github/workflows/cdn.yml
 
 permissions:
   contents: read

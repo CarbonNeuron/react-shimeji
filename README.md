@@ -21,7 +21,7 @@ const catalog = await cdn.list();
 const character = await cdn.load(catalog[0].id);
 ```
 
-The CDN URL can point to any server that serves the same static file layout. The `Build character CDN image` workflow publishes the image to GHCR. Normal pushes to `main` publish only the core and React npm packages; publishing every character package is an explicit manual workflow option.
+The CDN URL can point to any server that serves the same static file layout. Run the `Build character CDN image` workflow to publish the image to GHCR. Normal pushes to `main` publish only the core and React npm packages; publishing every character package is an explicit manual workflow option.
 
 ## Features
 
